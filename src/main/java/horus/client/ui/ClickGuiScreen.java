@@ -308,9 +308,9 @@ public class ClickGuiScreen extends Screen implements ScreenClosingTransition.Su
       Render2D.processData89(
          "assets/horus/textures/gui/mainmenu/icons/logo.png",
          local1247_7 + local1247_6 / 2.0F - 3.4F * local1247_4,
-         local1247_8 + local1247_6 / 2.0F - 2.65F * local1247_4,
+         local1247_8 + local1247_6 / 2.0F - 3.4F * local1247_4,
          6.8F * local1247_4,
-         5.3F * local1247_4,
+         6.8F * local1247_4,
          0.0F,
          ClickGuiStyle.intVal
       );
@@ -388,7 +388,16 @@ public class ClickGuiScreen extends Screen implements ScreenClosingTransition.Su
       Render2D.processData60(cloudBtnX + 0.5F * local1247_4, cloudBtnY + 0.5F * local1247_4, cloudBtnW - 1.0F * local1247_4, cloudBtnH - 1.0F * local1247_4, cloudBtnH / 2.26F - 0.5F * local1247_4, 25.0F, 1.0F, -1);
       Render2D.processData51(cloudBtnX, cloudBtnY, cloudBtnW, cloudBtnH, cloudBtnH / 2.26F, this.cloudModalOpen ? ClickGuiStyle.intVal : ClickGuiStyle.intVal2);
       Render2D.processData86(cloudBtnX, cloudBtnY, cloudBtnW, cloudBtnH, cloudBtnH / 2.26F, 0.5F, this.cloudModalOpen ? -1 : ClickGuiStyle.intVal3);
-      FontText.processData3(FontFace.SEMI_BOLD, "☁ CLOUD", cloudBtnX + 4.5F * local1247_4, cloudBtnY + (cloudBtnH - 5.5F * local1247_4) / 2.0F, 5.2F * local1247_4, this.cloudModalOpen ? -16777216 : Colors.computeInt7(-1, 230));
+      Render2D.processData89(
+         "assets/horus/textures/gui/mainmenu/icons/logo.png",
+         cloudBtnX + 4.5F * local1247_4,
+         cloudBtnY + (cloudBtnH - 7.0F * local1247_4) / 2.0F,
+         7.0F * local1247_4,
+         7.0F * local1247_4,
+         0.0F,
+         this.cloudModalOpen ? -16777216 : ClickGuiStyle.intVal
+      );
+      FontText.processData3(FontFace.SEMI_BOLD, "Horus", cloudBtnX + 13.0F * local1247_4, cloudBtnY + (cloudBtnH - 5.5F * local1247_4) / 2.0F, 5.2F * local1247_4, this.cloudModalOpen ? -16777216 : Colors.computeInt7(-1, 230));
 
       this.settingRenderContext.processData7(cloudBtnX, cloudBtnY, cloudBtnW, cloudBtnH, null, () -> {
          this.cloudModalOpen = !this.cloudModalOpen;

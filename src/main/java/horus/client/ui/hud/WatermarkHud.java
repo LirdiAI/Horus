@@ -78,7 +78,7 @@ public final class WatermarkHud {
          local3930_7.flag = local3930_7.strVal2 == null || InterfaceModule.getInstance().components.matchesOption(local3930_7.strVal2);
          switch (local3930_7.strVal) {
             case "logo":
-               local3930_7.processData3(null, null, 10.0F);
+               local3930_7.processData3(null, null, 13.0F);
                break;
             case "avatar":
                local3930_7.processData3(null, null, 12.0F);
@@ -336,9 +336,9 @@ public final class WatermarkHud {
                Render2D.processData89(
                   "assets/horus/textures/gui/mainmenu/icons/logo.png",
                   local3942_4,
-                  local3942_9 + (this.floatVal6 - this.floatVal6 * 0.78F) / 2.0F,
+                  local3942_9,
                   this.floatVal6,
-                  this.floatVal6 * 0.78F,
+                  this.floatVal6,
                   0.0F,
                   local3942_7
                );
