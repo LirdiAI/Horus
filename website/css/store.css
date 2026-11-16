@@ -2,3 +2,109 @@
 @media(max-width:800px){.nav{display:none}.hero{gap:24px;padding-top:48px}.art{height:240px}.art img{width:170px}.plans{gap:12px}.plan{padding:24px}.plan .price{font-size:40px}.auth-layout{gap:32px}.dashboard{grid-template-columns:1fr}.faq{gap:32px}.brand small{display:none}.beta{gap:20px;flex-wrap:wrap}.beta .price{margin-left:auto}.auth-aside h1{font-size:40px}}
 @media(max-width:600px){.topbar{padding:12px 16px;gap:8px;min-height:76px}.brand{font-size:16px}.brand img{width:28px}.actions{gap:4px}.actions .button{font-size:12px;padding:10px}.hero{grid-template-columns:1fr;padding:40px 0}.hero h1{font-size:44px}.hero p{font-size:16px}.art{display:none}main{padding:0 20px}.plans{grid-template-columns:1fr}.plan{padding:28px}.section-head{display:block}.section-head h2{font-size:28px}.beta{padding:24px;gap:16px;margin-bottom:40px}.beta-symbol{display:none}.beta>div{width:100%}.beta .price{margin-left:0}.beta button{flex:1}.faq{grid-template-columns:1fr;gap:0}.auth-layout{grid-template-columns:1fr;padding:40px 0;gap:24px}.auth-aside img{display:none}.auth-aside h1{font-size:36px;margin-top:0}.auth-aside p{display:none}.panel{padding:24px}.data-grid{grid-template-columns:1fr;gap:16px}.order{flex-wrap:wrap;gap:12px}.order-info{flex-basis:60%}footer{padding:24px 20px;gap:16px;flex-direction:column}.page-title{padding-top:32px}.page-title h1{font-size:32px;letter-spacing:-1px}dialog{padding:24px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ===== Плавность и анимации ===== */
+html { scroll-behavior: smooth; }
+body { animation: pageFade .45s ease both; }
+@keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
+
+/* мягкое появление секций со ступенькой */
+main > * { animation: rise .55s cubic-bezier(.22, 1, .36, 1) both; }
+main > *:nth-child(2) { animation-delay: .06s; }
+main > *:nth-child(3) { animation-delay: .12s; }
+main > *:nth-child(4) { animation-delay: .18s; }
+main > *:nth-child(5) { animation-delay: .24s; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* кнопки: подъём + свечение */
+.button, .plan button, .order button, .auth button, .profile-pass button {
+  transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s ease, background-color .18s ease, border-color .18s ease, color .18s ease, opacity .18s ease;
+  will-change: transform;
+}
+.button:hover:not(:disabled), .plan button:hover:not(:disabled), .order button:hover:not(:disabled), .auth button:hover:not(:disabled), .profile-pass button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.button:active:not(:disabled), .plan button:active:not(:disabled), .order button:active:not(:disabled) {
+  transform: translateY(0) scale(.98);
+}
+.button.primary:hover:not(:disabled), .plan button.primary:hover:not(:disabled) {
+  box-shadow: 0 6px 24px -6px rgba(147, 100, 252, .55);
+}
+
+/* карточки тарифов */
+.plan, .order, .panel {
+  transition: transform .25s cubic-bezier(.22, 1, .36, 1), box-shadow .25s ease, border-color .25s ease;
+}
+.plan:hover {
+  transform: translateY(-5px);
+  border-color: rgba(147, 100, 252, .45);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .6), 0 0 0 1px rgba(147, 100, 252, .18);
+}
+.plan.featured:hover { border-color: rgba(147, 100, 252, .65); }
+.order:hover { transform: translateY(-2px); }
+
+/* навигация и логотип */
+.nav a, .actions .button { position: relative; }
+.nav a::after {
+  content: ''; position: absolute; left: 0; right: 100%; bottom: -4px; height: 2px;
+  background: linear-gradient(90deg, #c084fc, #818cf8); border-radius: 2px;
+  transition: right .25s cubic-bezier(.22, 1, .36, 1);
+}
+.nav a:hover::after { right: 0; }
+.brand img { transition: transform .35s cubic-bezier(.22, 1, .36, 1), filter .35s ease; }
+.brand:hover img { transform: rotate(-8deg) scale(1.12); filter: drop-shadow(0 0 10px rgba(147, 100, 252, .6)); }
+
+/* логотип в хиро плавает */
+.art img { animation: float 6s ease-in-out infinite; filter: drop-shadow(0 14px 30px rgba(147, 100, 252, .25)); }
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(2deg); }
+}
+.eyebrow { letter-spacing: .14em; }
+
+/* диалог оформления заказа */
+dialog[open], .dialog-head { }
+dialog[open] { animation: pop .3s cubic-bezier(.34, 1.4, .64, 1) both; }
+@keyframes pop {
+  from { opacity: 0; transform: scale(.93) translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+dialog::backdrop { background: rgba(5, 6, 10, .6); animation: pageFade .25s ease both; }
+
+/* формы и поля */
+input {
+  transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+input:focus {
+  border-color: rgba(147, 100, 252, .7);
+  box-shadow: 0 0 0 3px rgba(147, 100, 252, .18);
+  outline: none;
+}
+.error, .notice { animation: shake-in .35s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes shake-in {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* статус заказа */
+.status { transition: color .2s ease; }
+
+/* крутящийся индикатор ожидания на кнопках */
+button[disabled]:not(.plan button) { opacity: .7; }
+
+/* ссылки */
+.text-link { transition: color .18s ease, text-shadow .18s ease; }
+.text-link:hover { color: #c4b5fd; text-shadow: 0 0 12px rgba(147, 100, 252, .45); }
+
+/* уважение к reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
