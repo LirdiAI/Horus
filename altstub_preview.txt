@@ -1,0 +1,497 @@
+package horus.client.multiplayer;
+
+// Автосгенерированный листенинг пакетов игрового состояния для AltBot (Мультиаккаунт).
+
+import net.minecraft.network.NetworkPhase;
+import net.minecraft.network.listener.ClientCommonPacketListener;
+import net.minecraft.network.listener.ClientPingResultPacketListener;
+import net.minecraft.network.packet.s2c.play.AdvancementUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.BlockBreakingProgressS2CPacket;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.BlockEventS2CPacket;
+import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.BlockValueDebugS2CPacket;
+import net.minecraft.network.packet.s2c.play.BossBarS2CPacket;
+import net.minecraft.network.packet.s2c.play.BundleS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChatSuggestionsS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkBiomeDataS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkDataS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkLoadDistanceS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkRenderDistanceCenterS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkSentS2CPacket;
+import net.minecraft.network.packet.s2c.play.ChunkValueDebugS2CPacket;
+import net.minecraft.network.packet.s2c.play.ClearTitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
+import net.minecraft.network.packet.s2c.play.CommandSuggestionsS2CPacket;
+import net.minecraft.network.packet.s2c.play.CommandTreeS2CPacket;
+import net.minecraft.network.packet.s2c.play.CooldownUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.CraftFailedResponseS2CPacket;
+import net.minecraft.network.packet.s2c.play.DamageTiltS2CPacket;
+import net.minecraft.network.packet.s2c.play.DeathMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.DebugSampleS2CPacket;
+import net.minecraft.network.packet.s2c.play.DifficultyS2CPacket;
+import net.minecraft.network.packet.s2c.play.EndCombatS2CPacket;
+import net.minecraft.network.packet.s2c.play.EnterCombatS2CPacket;
+import net.minecraft.network.packet.s2c.play.EnterReconfigurationS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntitiesDestroyS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityAnimationS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityAttachS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityAttributesS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityEquipmentUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityPassengersSetS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityPositionSyncS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntitySetHeadYawS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityStatusEffectS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityStatusS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityTrackerUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityValueDebugS2CPacket;
+import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.EventDebugS2CPacket;
+import net.minecraft.network.packet.s2c.play.ExperienceBarUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket;
+import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
+import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.GameStateChangeS2CPacket;
+import net.minecraft.network.packet.s2c.play.GameTestHighlightPosS2CPacket;
+import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.InventoryS2CPacket;
+import net.minecraft.network.packet.s2c.play.ItemPickupAnimationS2CPacket;
+import net.minecraft.network.packet.s2c.play.LightUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.LookAtS2CPacket;
+import net.minecraft.network.packet.s2c.play.MapUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.MoveMinecartAlongTrackS2CPacket;
+import net.minecraft.network.packet.s2c.play.NbtQueryResponseS2CPacket;
+import net.minecraft.network.packet.s2c.play.OpenMountScreenS2CPacket;
+import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
+import net.minecraft.network.packet.s2c.play.OpenWrittenBookS2CPacket;
+import net.minecraft.network.packet.s2c.play.OverlayMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.ParticleS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlaySoundFromEntityS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerAbilitiesS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerActionResponseS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListHeaderS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerRotationS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerSpawnPositionS2CPacket;
+import net.minecraft.network.packet.s2c.play.ProfilelessChatMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.ProjectilePowerS2CPacket;
+import net.minecraft.network.packet.s2c.play.RecipeBookAddS2CPacket;
+import net.minecraft.network.packet.s2c.play.RecipeBookRemoveS2CPacket;
+import net.minecraft.network.packet.s2c.play.RecipeBookSettingsS2CPacket;
+import net.minecraft.network.packet.s2c.play.RemoveEntityStatusEffectS2CPacket;
+import net.minecraft.network.packet.s2c.play.RemoveMessageS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScoreboardDisplayS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScoreboardObjectiveUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScoreboardScoreResetS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScoreboardScoreUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScreenHandlerPropertyUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket;
+import net.minecraft.network.packet.s2c.play.SelectAdvancementTabS2CPacket;
+import net.minecraft.network.packet.s2c.play.ServerMetadataS2CPacket;
+import net.minecraft.network.packet.s2c.play.SetCameraEntityS2CPacket;
+import net.minecraft.network.packet.s2c.play.SetCursorItemS2CPacket;
+import net.minecraft.network.packet.s2c.play.SetPlayerInventoryS2CPacket;
+import net.minecraft.network.packet.s2c.play.SetTradeOffersS2CPacket;
+import net.minecraft.network.packet.s2c.play.SignEditorOpenS2CPacket;
+import net.minecraft.network.packet.s2c.play.SimulationDistanceS2CPacket;
+import net.minecraft.network.packet.s2c.play.StartChunkSendS2CPacket;
+import net.minecraft.network.packet.s2c.play.StatisticsS2CPacket;
+import net.minecraft.network.packet.s2c.play.StopSoundS2CPacket;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.SynchronizeRecipesS2CPacket;
+import net.minecraft.network.packet.s2c.play.TeamS2CPacket;
+import net.minecraft.network.packet.s2c.play.TestInstanceBlockStatusS2CPacket;
+import net.minecraft.network.packet.s2c.play.TickStepS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleFadeS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.UnloadChunkS2CPacket;
+import net.minecraft.network.packet.s2c.play.UpdateSelectedSlotS2CPacket;
+import net.minecraft.network.packet.s2c.play.UpdateTickRateS2CPacket;
+import net.minecraft.network.packet.s2c.play.VehicleMoveS2CPacket;
+import net.minecraft.network.packet.s2c.play.WaypointS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldBorderCenterChangedS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldBorderInitializeS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldBorderInterpolateSizeS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldBorderSizeChangedS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldBorderWarningBlocksChangedS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldBorderWarningTimeChangedS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldEventS2CPacket;
+import net.minecraft.network.packet.s2c.play.WorldTimeUpdateS2CPacket;
+
+   @Override
+   public void onEntitySpawn(EntitySpawnS2CPacket botVar1) {
+   }
+   @Override
+   public void onScoreboardObjectiveUpdate(ScoreboardObjectiveUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityAnimation(EntityAnimationS2CPacket botVar1) {
+   }
+   @Override
+   public void onDamageTilt(DamageTiltS2CPacket botVar1) {
+   }
+   @Override
+   public void onStatistics(StatisticsS2CPacket botVar1) {
+   }
+   @Override
+   public void onRecipeBookAdd(RecipeBookAddS2CPacket botVar1) {
+   }
+   @Override
+   public void onRecipeBookRemove(RecipeBookRemoveS2CPacket botVar1) {
+   }
+   @Override
+   public void onRecipeBookSettings(RecipeBookSettingsS2CPacket botVar1) {
+   }
+   @Override
+   public void onBlockBreakingProgress(BlockBreakingProgressS2CPacket botVar1) {
+   }
+   @Override
+   public void onSignEditorOpen(SignEditorOpenS2CPacket botVar1) {
+   }
+   @Override
+   public void onBlockEntityUpdate(BlockEntityUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onBlockEvent(BlockEventS2CPacket botVar1) {
+   }
+   @Override
+   public void onBlockUpdate(BlockUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onGameMessage(GameMessageS2CPacket botVar1) {
+   }
+   @Override
+   public void onChatMessage(ChatMessageS2CPacket botVar1) {
+   }
+   @Override
+   public void onProfilelessChatMessage(ProfilelessChatMessageS2CPacket botVar1) {
+   }
+   @Override
+   public void onRemoveMessage(RemoveMessageS2CPacket botVar1) {
+   }
+   @Override
+   public void onChunkDeltaUpdate(ChunkDeltaUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onMapUpdate(MapUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onCloseScreen(CloseScreenS2CPacket botVar1) {
+   }
+   @Override
+   public void onInventory(InventoryS2CPacket botVar1) {
+   }
+   @Override
+   public void onOpenMountScreen(OpenMountScreenS2CPacket botVar1) {
+   }
+   @Override
+   public void onScreenHandlerPropertyUpdate(ScreenHandlerPropertyUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onScreenHandlerSlotUpdate(ScreenHandlerSlotUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityStatus(EntityStatusS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityAttach(EntityAttachS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityPassengersSet(EntityPassengersSetS2CPacket botVar1) {
+   }
+   @Override
+   public void onExplosion(ExplosionS2CPacket botVar1) {
+   }
+   @Override
+   public void onGameStateChange(GameStateChangeS2CPacket botVar1) {
+   }
+   @Override
+   public void onChunkData(ChunkDataS2CPacket botVar1) {
+   }
+   @Override
+   public void onChunkBiomeData(ChunkBiomeDataS2CPacket botVar1) {
+   }
+   @Override
+   public void onUnloadChunk(UnloadChunkS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldEvent(WorldEventS2CPacket botVar1) {
+   }
+   @Override
+   public void onGameJoin(GameJoinS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntity(EntityS2CPacket botVar1) {
+   }
+   @Override
+   public void onMoveMinecartAlongTrack(MoveMinecartAlongTrackS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerPositionLook(PlayerPositionLookS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerRotation(PlayerRotationS2CPacket botVar1) {
+   }
+   @Override
+   public void onParticle(ParticleS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerAbilities(PlayerAbilitiesS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerRemove(PlayerRemoveS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerList(PlayerListS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntitiesDestroy(EntitiesDestroyS2CPacket botVar1) {
+   }
+   @Override
+   public void onRemoveEntityStatusEffect(RemoveEntityStatusEffectS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerRespawn(PlayerRespawnS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntitySetHeadYaw(EntitySetHeadYawS2CPacket botVar1) {
+   }
+   @Override
+   public void onUpdateSelectedSlot(UpdateSelectedSlotS2CPacket botVar1) {
+   }
+   @Override
+   public void onScoreboardDisplay(ScoreboardDisplayS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityTrackerUpdate(EntityTrackerUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityVelocityUpdate(EntityVelocityUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityEquipmentUpdate(EntityEquipmentUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onExperienceBarUpdate(ExperienceBarUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onHealthUpdate(HealthUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onTeam(TeamS2CPacket botVar1) {
+   }
+   @Override
+   public void onScoreboardScoreUpdate(ScoreboardScoreUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onScoreboardScoreReset(ScoreboardScoreResetS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerSpawnPosition(PlayerSpawnPositionS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldTimeUpdate(WorldTimeUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlaySound(PlaySoundS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlaySoundFromEntity(PlaySoundFromEntityS2CPacket botVar1) {
+   }
+   @Override
+   public void onItemPickupAnimation(ItemPickupAnimationS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityPositionSync(EntityPositionSyncS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityPosition(EntityPositionS2CPacket botVar1) {
+   }
+   @Override
+   public void onUpdateTickRate(UpdateTickRateS2CPacket botVar1) {
+   }
+   @Override
+   public void onTickStep(TickStepS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityAttributes(EntityAttributesS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityStatusEffect(EntityStatusEffectS2CPacket botVar1) {
+   }
+   @Override
+   public void onEndCombat(EndCombatS2CPacket botVar1) {
+   }
+   @Override
+   public void onEnterCombat(EnterCombatS2CPacket botVar1) {
+   }
+   @Override
+   public void onDeathMessage(DeathMessageS2CPacket botVar1) {
+   }
+   @Override
+   public void onDifficulty(DifficultyS2CPacket botVar1) {
+   }
+   @Override
+   public void onSetCameraEntity(SetCameraEntityS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldBorderInitialize(WorldBorderInitializeS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldBorderInterpolateSize(WorldBorderInterpolateSizeS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldBorderSizeChanged(WorldBorderSizeChangedS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldBorderWarningTimeChanged(WorldBorderWarningTimeChangedS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldBorderWarningBlocksChanged(WorldBorderWarningBlocksChangedS2CPacket botVar1) {
+   }
+   @Override
+   public void onWorldBorderCenterChanged(WorldBorderCenterChangedS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerListHeader(PlayerListHeaderS2CPacket botVar1) {
+   }
+   @Override
+   public void onBossBar(BossBarS2CPacket botVar1) {
+   }
+   @Override
+   public void onCooldownUpdate(CooldownUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onVehicleMove(VehicleMoveS2CPacket botVar1) {
+   }
+   @Override
+   public void onAdvancements(AdvancementUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onSelectAdvancementTab(SelectAdvancementTabS2CPacket botVar1) {
+   }
+   @Override
+   public void onCraftFailedResponse(CraftFailedResponseS2CPacket botVar1) {
+   }
+   @Override
+   public void onCommandTree(CommandTreeS2CPacket botVar1) {
+   }
+   @Override
+   public void onStopSound(StopSoundS2CPacket botVar1) {
+   }
+   @Override
+   public void onCommandSuggestions(CommandSuggestionsS2CPacket botVar1) {
+   }
+   @Override
+   public void onSynchronizeRecipes(SynchronizeRecipesS2CPacket botVar1) {
+   }
+   @Override
+   public void onLookAt(LookAtS2CPacket botVar1) {
+   }
+   @Override
+   public void onNbtQueryResponse(NbtQueryResponseS2CPacket botVar1) {
+   }
+   @Override
+   public void onLightUpdate(LightUpdateS2CPacket botVar1) {
+   }
+   @Override
+   public void onOpenWrittenBook(OpenWrittenBookS2CPacket botVar1) {
+   }
+   @Override
+   public void onOpenScreen(OpenScreenS2CPacket botVar1) {
+   }
+   @Override
+   public void onSetTradeOffers(SetTradeOffersS2CPacket botVar1) {
+   }
+   @Override
+   public void onChunkLoadDistance(ChunkLoadDistanceS2CPacket botVar1) {
+   }
+   @Override
+   public void onSimulationDistance(SimulationDistanceS2CPacket botVar1) {
+   }
+   @Override
+   public void onChunkRenderDistanceCenter(ChunkRenderDistanceCenterS2CPacket botVar1) {
+   }
+   @Override
+   public void onPlayerActionResponse(PlayerActionResponseS2CPacket botVar1) {
+   }
+   @Override
+   public void onOverlayMessage(OverlayMessageS2CPacket botVar1) {
+   }
+   @Override
+   public void onSubtitle(SubtitleS2CPacket botVar1) {
+   }
+   @Override
+   public void onTitle(TitleS2CPacket botVar1) {
+   }
+   @Override
+   public void onTitleFade(TitleFadeS2CPacket botVar1) {
+   }
+   @Override
+   public void onTitleClear(ClearTitleS2CPacket botVar1) {
+   }
+   @Override
+   public void onServerMetadata(ServerMetadataS2CPacket botVar1) {
+   }
+   @Override
+   public void onChatSuggestions(ChatSuggestionsS2CPacket botVar1) {
+   }
+   @Override
+   public void onBundle(BundleS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityDamage(EntityDamageS2CPacket botVar1) {
+   }
+   @Override
+   public void onEnterReconfiguration(EnterReconfigurationS2CPacket botVar1) {
+   }
+   @Override
+   public void onStartChunkSend(StartChunkSendS2CPacket botVar1) {
+   }
+   @Override
+   public void onChunkSent(ChunkSentS2CPacket botVar1) {
+   }
+   @Override
+   public void onDebugSample(DebugSampleS2CPacket botVar1) {
+   }
+   @Override
+   public void onProjectilePower(ProjectilePowerS2CPacket botVar1) {
+   }
+   @Override
+   public void onSetCursorItem(SetCursorItemS2CPacket botVar1) {
+   }
+   @Override
+   public void onSetPlayerInventory(SetPlayerInventoryS2CPacket botVar1) {
+   }
+   @Override
+   public void onTestInstanceBlockStatus(TestInstanceBlockStatusS2CPacket botVar1) {
+   }
+   @Override
+   public void onWaypoint(WaypointS2CPacket botVar1) {
+   }
+   @Override
+   public void onChunkValueDebug(ChunkValueDebugS2CPacket botVar1) {
+   }
+   @Override
+   public void onBlockValueDebug(BlockValueDebugS2CPacket botVar1) {
+   }
+   @Override
+   public void onEntityValueDebug(EntityValueDebugS2CPacket botVar1) {
+   }
+   @Override
+   public void onEventDebug(EventDebugS2CPacket botVar1) {
+   }
+   @Override
+   public void onGameTestHighlightPos(GameTestHighlightPosS2CPacket botVar1) {
+   }
+}

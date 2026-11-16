@@ -1,0 +1,154 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Поддержка — Horus Client</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/support.css">
+</head>
+<body>
+
+<div class="bg-fixed">
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+</div>
+
+<header class="topbar">
+    <div class="left">
+        <div class="logo"><img src="images/logo.png" alt="Horus"></div>
+        <span class="brand">Horus</span>
+        <span class="sep">/</span>
+        <span class="location">Поддержка</span>
+    </div>
+    <div class="center">
+        <a href="index.html"><i class="fas fa-home"></i> Главная</a>
+        <a href="shop.html"><i class="fas fa-store"></i> Магазин</a>
+        <a href="rules.html"><i class="fas fa-gavel"></i> Правила</a>
+        <a href="privacy.html"><i class="fas fa-shield-alt"></i> Соглашение</a>
+        <a href="support.html" class="active"><i class="fas fa-headset"></i> Поддержка</a>
+        <a href="profile.html"><i class="fas fa-user"></i> Профиль</a>
+    </div>
+    <div class="right">
+        <a href="login.html" class="btn-auth login"><i class="fas fa-sign-in-alt"></i> Войти</a>
+        <a href="register.html" class="btn-auth register"><i class="fas fa-user-plus"></i> Регистрация</a>
+    </div>
+</header>
+
+<div class="support-page" style="max-width: 900px; margin: 40px auto 80px; padding: 0 20px; position: relative; z-index: 1;">
+    <div class="support-header" style="text-align: center; margin-bottom: 36px;">
+        <div class="icon" style="width: 64px; height: 64px; margin: 0 auto 16px; background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--accent);"><i class="fas fa-headset"></i></div>
+        <h1 style="font-family: 'Instrument Sans', sans-serif; font-size: 32px; font-weight: 800; color: #fff;">Служба <span style="color: var(--accent);">поддержки</span></h1>
+        <p style="color: var(--text-dim); font-size: 14px; margin-top: 6px;">Отвечаем на вопросы и помогаем решить технические сложности</p>
+    </div>
+
+    <!-- CREATE TICKET -->
+    <div class="card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 30px;">
+        <div class="card-title" style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-paper-plane" style="color: var(--accent);"></i> Создать новое обращение
+        </div>
+        <form onsubmit="handleCreateTicket(event)" style="display: flex; flex-direction: column; gap: 14px;">
+            <div>
+                <label style="font-size: 12px; color: var(--text-faint); margin-bottom: 6px; display: block;">Тема вопроса</label>
+                <input type="text" id="ticketSubject" placeholder="Кратко опишите проблему" required style="width: 100%; height: 42px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 14px; color: #fff; font-size: 13px;">
+            </div>
+            <div>
+                <label style="font-size: 12px; color: var(--text-faint); margin-bottom: 6px; display: block;">Категория</label>
+                <select id="ticketCategory" style="width: 100%; height: 42px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 14px; color: #fff; font-size: 13px;">
+                    <option value="Техническая помощь">Техническая помощь (запуск, краши)</option>
+                    <option value="Вопрос по модулям">Вопрос по модулям (Mixer, AHHelper)</option>
+                    <option value="Оплата и тарифы">Оплата и тарифы</option>
+                    <option value="Сброс HWID">Сброс HWID</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 12px; color: var(--text-faint); margin-bottom: 6px; display: block;">Подробное описание</label>
+                <textarea id="ticketMessage" rows="4" placeholder="Укажите подробности вашей ситуации..." required style="width: 100%; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; color: #fff; font-size: 13px; font-family: inherit; resize: vertical;"></textarea>
+            </div>
+            <button type="submit" style="height: 44px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fas fa-paper-plane"></i> Отправить тикет
+            </button>
+        </form>
+    </div>
+
+    <!-- MY TICKETS -->
+    <div class="card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px;">
+        <div class="card-title" style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-ticket-alt" style="color: var(--accent);"></i> Мои обращения
+        </div>
+        <div id="ticketsList">
+            <div class="empty-state" style="text-align: center; padding: 32px 0; color: var(--text-dim);">
+                <i class="fas fa-inbox" style="font-size: 36px; margin-bottom: 12px; opacity: 0.4;"></i>
+                <p>У вас пока нет открытых обращений</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer" style="background: var(--bg-elevated); border-top: 1px solid var(--border); padding: 50px 20px 30px; margin-top: 80px;">
+    <div class="footer-content" style="max-width: 1180px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; color: var(--text-faint); font-size: 12px;">
+        <div class="footer-copyright">© 2026 Horus Client. Все права защищены.</div>
+        <div style="display: flex; gap: 16px;">
+            <a href="index.html" style="color: var(--text-dim);">Главная</a>
+            <a href="shop.html" style="color: var(--text-dim);">Магазин</a>
+        </div>
+    </div>
+</footer>
+
+<script src="js/common.js"></script>
+<script>
+    function loadTickets() {
+        const list = document.getElementById("ticketsList");
+        try {
+            const tickets = JSON.parse(localStorage.getItem("horus_tickets") || "[]");
+            if (tickets.length === 0) return;
+            list.innerHTML = tickets.map(t => `
+                <div style="padding: 14px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <div style="font-weight: 700; color: #fff; font-size: 14px;">${t.subject}</div>
+                        <div style="font-size: 12px; color: var(--text-faint); margin-top: 2px;">
+                            <span>${t.category}</span> • <span>${t.date}</span>
+                        </div>
+                    </div>
+                    <span style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;">
+                        ● В обработке
+                    </span>
+                </div>
+            `).join("");
+        } catch(e) {}
+    }
+
+    function handleCreateTicket(e) {
+        e.preventDefault();
+        const subject = document.getElementById("ticketSubject").value.trim();
+        const category = document.getElementById("ticketCategory").value;
+        const msg = document.getElementById("ticketMessage").value.trim();
+        if (!subject || !msg) return;
+
+        const tickets = JSON.parse(localStorage.getItem("horus_tickets") || "[]");
+        tickets.unshift({
+            subject: subject,
+            category: category,
+            message: msg,
+            date: new Date().toLocaleDateString('ru-RU') + " " + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+        });
+        localStorage.setItem("horus_tickets", JSON.stringify(tickets));
+
+        document.getElementById("ticketSubject").value = "";
+        document.getElementById("ticketMessage").value = "";
+        alert("✅ Обращение успешно отправлено в службу поддержки! Мы свяжемся с вами в течение 24 часов.");
+        loadTickets();
+    }
+
+    document.addEventListener("DOMContentLoaded", loadTickets);
+</script>
+
+</body>
+</html>
+

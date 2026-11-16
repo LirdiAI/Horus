@@ -1,0 +1,18 @@
+# Render Blueprint: HorusClient Store
+# Сервис читает эту схему при создании "New -> Blueprint" в Render.
+services:
+  - type: web
+    name: horus-store
+    runtime: node
+    rootDir: website
+    plan: free
+    region: frankfurt        # EU — ближе к RU игрокам
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/catalog
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_ENV
+        value: production
+      # PORT Render подставляет сам — не переопределяем
