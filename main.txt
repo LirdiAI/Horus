@@ -1,0 +1,87 @@
+import sys
+import os
+import subprocess
+from tkinter import messagebox
+import customtkinter as ctk
+from minecraft_launcher_lib import install, utils, command
+
+# Настройка темы интерфейса
+ctk.set_appearance_mode("Dark")
+ctk.set_default_color_theme("blue")
+
+class MinecraftLauncher(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+
+        self.title("Horus Launcher")
+        self.geometry("500x350")
+        self.resizable(False, False)
+
+        # Поле ввода никнейма
+        self.label_name = ctk.CTkLabel(self, text="Никнейм игрока:", font=("Arial", 14))
+        self.label_name.pack(pady=(30, 5))
+        
+        self.entry_name = ctk.CTkEntry(self, width=250, height=35)
+        self.entry_name.insert(0, "MonotonPlayer")
+        self.entry_name.pack(pady=5)
+
+        # Статус загрузки / запуска
+        self.status_label = ctk.CTkLabel(self, text="Готов к запуску", font=("Arial", 12), text_color="gray")
+        self.status_label.pack(pady=15)
+
+        # Кнопка запуска игры
+        self.launch_button = ctk.CTkButton(self, text="ИГРАТЬ", width=200, height=45, font=("Arial", 16, "bold"), command=self.launch_game)
+        self.launch_button.pack(pady=10)
+
+    def launch_game(self):
+        username = self.entry_name.get().strip()
+        if not username:
+            messagebox.showerror("Ошибка", "Введите никнейм!")
+            return
+
+        self.launch_button.configure(state="disabled")
+        self.status_label.configure(text="Подготовка папки на диске C...", text_color="orange")
+        self.update()
+
+        # Указываем собственный путь в корень диска C:\
+        minecraft_directory = os.path.join("C:\\", "MonotonGame")
+        
+        # Создаем папки, если их еще не существует
+        os.makedirs(os.path.join(minecraft_directory, "mods"), exist_ok=True)
+
+        version = "1.21.4"
+
+        try:
+            # Установка ванили 1.21.4 в нашу кастомную папку на C:\, если её там нет
+            if not os.path.exists(os.path.join(minecraft_directory, "versions", version)):
+                self.status_label.configure(text="Загрузка чистой версии 1.21.4...", text_color="orange")
+                self.update()
+                install.install_minecraft_version(version, minecraft_directory)
+
+            self.status_label.configure(text="Запуск клиента...", text_color="green")
+            self.update()
+
+            options = {
+                "username": username,
+                "uuid": "",
+                "token": "",
+                "jvmArguments": ["-Xmx4G"] # Выделение 4 ГБ оперативки
+            }
+
+            # Генерируем команду с учетом нашей кастомной директории
+            run_command = command.get_minecraft_command(version, minecraft_directory, options)
+            
+            # Запуск игры в отдельном процессе
+            subprocess.Popen(run_command)
+            
+            # Закрытие лаунчера после запуска игры
+            self.destroy()
+
+        except Exception as e:
+            messagebox.showerror("Ошибка запуска", f"Произошла ошибка:\n{str(e)}")
+            self.launch_button.configure(state="normal")
+            self.status_label.configure(text="Ошибка", text_color="red")
+
+if __name__ == "__main__":
+    app = MinecraftLauncher()
+    app.mainloop()
