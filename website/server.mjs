@@ -100,6 +100,11 @@ export function createStore({ database = join(root, 'data/store.sqlite'), secure
           catch (e) { if (e.code?.includes('CONSTRAINT') || e.message.includes('UNIQUE')) fail(409,'Логин или почта уже используются.'); throw e; }
         }
         user = db.prepare('SELECT * FROM users WHERE username=?').get(username);
+        // Bootstrap-админка для хостинга (Render): если ADMIN_USER совпадает с логином — выдаём права
+        if (user && !user.admin && process.env.ADMIN_USER && username.toLowerCase() === process.env.ADMIN_USER.toLowerCase()) {
+          db.prepare('UPDATE users SET admin=1 WHERE id=?').run(user.id);
+          user = db.prepare('SELECT * FROM users WHERE username=?').get(username);
+        }
         // Equal-cost verification even for an unknown login.
         const dummy = '0123456789abcdef0123456789abcdef:'+'0'.repeat(128);
         if (!await passwordMatches(password,user?.password || dummy) || !user) fail(401,'Неверный логин или пароль.');
