@@ -19,7 +19,7 @@ export function openDatabase(file) {
   const db = new DatabaseSync(file);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
     CREATE TABLE IF NOT EXISTS users(id TEXT PRIMARY KEY,username TEXT NOT NULL UNIQUE COLLATE NOCASE,email TEXT NOT NULL UNIQUE COLLATE NOCASE,password TEXT NOT NULL,created_at TEXT NOT NULL,hwid TEXT,lifetime INTEGER NOT NULL DEFAULT 0,expires_at TEXT,beta INTEGER NOT NULL DEFAULT 0,admin INTEGER NOT NULL DEFAULT 0);
-    CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT REFERENCES users(id),csrf TEXT NOT NULL,expires INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY,user_id TEXT,csrf TEXT NOT NULL,expires INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS orders(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),product_id TEXT NOT NULL,product_name TEXT NOT NULL,amount INTEGER NOT NULL,status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL,reviewed_by TEXT REFERENCES users(id),reviewed_at TEXT);
     CREATE TABLE IF NOT EXISTS limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,until INTEGER NOT NULL);`);
   return db;
@@ -33,6 +33,34 @@ async function passwordMatches(password, stored) {
   const [salt, digest] = stored.split(':');
   return timingSafeEqual(Buffer.from(digest, 'hex'), await scrypt(password, salt, 64));
 }
+
+// ===== Supabase REST storage: аккаунты и заказы магазина живут в Supabase =====
+const SB_URL = process.env.SUPABASE_URL || 'https://swarweprhwoelirrmztv.supabase.co/rest/v1';
+const SB_KEY = process.env.SUPABASE_KEY || 'sb_publishable_HyTiEAwPcnXOL2qWcseYOw_KEBOGbdy';
+const userCache = new Map(); // id -> {u,t}: короткий кэш, чтобы не ходить в Supabase на каждый запрос
+async function sb(method, path, bodyObj, prefer) {
+  const headers = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' };
+  if (prefer) headers.Prefer = prefer;
+  const res = await fetch(SB_URL + path, { method, headers, body: bodyObj === undefined ? undefined : JSON.stringify(bodyObj) });
+  const text = await res.text();
+  if (!res.ok) {
+    if (res.status === 409 || (res.status === 422 && /duplicate|unique/i.test(text))) { const e = new Error('UNIQUE'); e.code = 'UNIQUE'; throw e; }
+    throw new Error(`Supabase ${res.status} ${text.slice(0, 200)}`);
+  }
+  return text ? JSON.parse(text) : null;
+}
+const sbRows = async path => (await sb('GET', path)) || [];
+const sbFirst = async path => (await sbRows(path))[0] || null;
+const sbUserById = async id => sbFirst(`/store_users?id=eq.${encodeURIComponent(id)}&select=*`);
+const sbUserByName = async name => sbFirst(`/store_users?username=eq.${encodeURIComponent(name)}&select=*`);
+async function sbUserCached(id) {
+  const hit = userCache.get(id);
+  if (hit && Date.now() - hit.t < 10000) return hit.u;
+  const u = await sbUserById(id);
+  if (u) userCache.set(id, { u, t: Date.now() }); else userCache.delete(id);
+  return u;
+}
+const sbUserPut = u => { if (u) userCache.set(u.id, { u, t: Date.now() }); };
 function fail(status, message) { throw Object.assign(new Error(message), { status }); }
 async function body(req) {
   if (!req.headers['content-type']?.startsWith('application/json')) fail(415, 'Ожидается JSON.');
@@ -40,7 +68,7 @@ async function body(req) {
   try { const value = JSON.parse(data); if (!value || Array.isArray(value) || typeof value !== 'object') throw Error(); return value; }
   catch { fail(400, 'Некорректный запрос.'); }
 }
-export function createStore({ database = join(root, 'data/store.sqlite'), secure = process.env.NODE_ENV === 'production' } = {}) {
+export function createStore({ database = join(root, 'data/sessions.sqlite'), secure = process.env.NODE_ENV === 'production' } = {}) {
   const db = openDatabase(database);
   function limited(key, max) {
     const now = Date.now();
@@ -77,7 +105,7 @@ export function createStore({ database = join(root, 'data/store.sqlite'), secure
         res.setHeader('Set-Cookie', `horus_session=${raw}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${secure ? '; Secure' : ''}`);
       }
       if (!session) newSession();
-      let user = session.user_id ? db.prepare('SELECT * FROM users WHERE id=?').get(session.user_id) : null;
+      let user = session.user_id ? await sbUserCached(session.user_id) : null;
       if (req.method === 'POST') {
         if (req.headers.origin && req.headers.origin !== `${secure ? 'https' : 'http'}://${req.headers.host}`) fail(403,'Недопустимый источник запроса.');
         if (req.headers['x-csrf-token'] !== session.csrf) fail(403,'Обновите страницу и повторите действие.');
@@ -96,14 +124,14 @@ export function createStore({ database = join(root, 'data/store.sqlite'), secure
           if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail(400,'Укажите корректную почту.');
           limited('register:'+req.socket.remoteAddress,8);
           const digest = await passwordHash(password);
-          try { db.prepare('INSERT INTO users(id,username,email,password,created_at) VALUES(?,?,?,?,?)').run(randomUUID(),username,email,digest,new Date().toISOString()); }
-          catch (e) { if (e.code?.includes('CONSTRAINT') || e.message.includes('UNIQUE')) fail(409,'Логин или почта уже используются.'); throw e; }
+          try { await sb('POST', '/store_users', { id:randomUUID(), username, email, password:digest, created_at:new Date().toISOString() }, 'return=minimal'); }
+          catch (e) { if (e.code === 'UNIQUE') fail(409,'Логин или почта уже используются.'); throw e; }
         }
-        user = db.prepare('SELECT * FROM users WHERE username=?').get(username);
+        user = await sbUserByName(username);
         // Bootstrap-админка для хостинга (Render): если ADMIN_USER совпадает с логином — выдаём права
         if (user && !user.admin && process.env.ADMIN_USER && username.toLowerCase() === process.env.ADMIN_USER.toLowerCase()) {
-          db.prepare('UPDATE users SET admin=1 WHERE id=?').run(user.id);
-          user = db.prepare('SELECT * FROM users WHERE username=?').get(username);
+          await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(user.id)}`, { admin:true }, 'return=minimal');
+          user = { ...user, admin:true }; sbUserPut(user);
         }
         // Equal-cost verification even for an unknown login.
         const dummy = '0123456789abcdef0123456789abcdef:'+'0'.repeat(128);
@@ -120,50 +148,51 @@ export function createStore({ database = join(root, 'data/store.sqlite'), secure
         if (typeof b.currentPassword !== 'string' || b.currentPassword.length > 128 || !await passwordMatches(b.currentPassword,user.password)) fail(400,'Текущий пароль неверен.');
         if (typeof b.newPassword !== 'string' || b.newPassword.length < 10 || b.newPassword.length > 128) fail(400,'Новый пароль: от 10 до 128 символов.');
         const digest = await passwordHash(b.newPassword);
-        db.prepare('UPDATE users SET password=? WHERE id=?').run(digest,user.id);
+        await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(user.id)}`, { password:digest }, 'return=minimal');
         db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(user.id,session.token); return send(200,{ok:true});
       }
-      if (req.method === 'GET' && path === '/api/orders') return send(200,{orders:db.prepare('SELECT * FROM orders WHERE user_id=? ORDER BY created_at DESC').all(user.id)});
+      if (req.method === 'GET' && path === '/api/orders') return send(200,{orders:await sbRows(`/store_orders?user_id=eq.${encodeURIComponent(user.id)}&select=*&order=created_at.desc`)});
       if (req.method === 'POST' && path === '/api/orders') {
         limited('order:'+user.id,30); const b = await body(req); const p = products.find(p=>p.id===b.productId);
         if (!p) fail(400,'Тариф не найден.');
         if (p.id==='beta' && !user.lifetime) fail(409,'Beta доступна только владельцам Lifetime.');
         if ((p.id==='beta' && user.beta) || (p.id!=='beta' && user.lifetime)) fail(409,'Этот доступ уже есть у вашего аккаунта.');
-        const existing = db.prepare("SELECT * FROM orders WHERE user_id=? AND status='pending'").get(user.id);
+        const existing = await sbFirst(`/store_orders?user_id=eq.${encodeURIComponent(user.id)}&status=eq.pending&select=id`);
         if (existing) fail(409,'У вас уже есть заказ на рассмотрении. Отмените его в профиле или дождитесь подтверждения.');
-        const order = {id:randomUUID(),product_id:p.id,product_name:p.name,amount:p.price,status:'pending',created_at:new Date().toISOString()};
-        db.prepare('INSERT INTO orders(id,user_id,product_id,product_name,amount,created_at) VALUES(?,?,?,?,?,?)').run(order.id,user.id,p.id,p.name,p.price,order.created_at);
+        const order = {id:randomUUID(),user_id:user.id,username:user.username,product_id:p.id,product_name:p.name,amount:p.price,status:'pending',created_at:new Date().toISOString()};
+        await sb('POST', '/store_orders', order, 'return=minimal');
         return send(201,{order});
       }
       const cancel = /^\/api\/orders\/([a-f0-9-]+)\/cancel$/.exec(path);
       if (req.method==='POST' && cancel) {
-        const result = db.prepare("UPDATE orders SET status='cancelled' WHERE id=? AND user_id=? AND status='pending'").run(cancel[1],user.id);
-        if (!result.changes) fail(409,'Заказ не найден или уже обработан.'); return send(200,{ok:true});
+        const rows = await sb('PATCH', `/store_orders?id=eq.${cancel[1]}&user_id=eq.${encodeURIComponent(user.id)}&status=eq.pending`, { status:'cancelled' }, 'return=representation');
+        if (!rows || !rows.length) fail(409,'Заказ не найден или уже обработан.'); return send(200,{ok:true});
       }
       if (path.startsWith('/api/admin/')) {
         if (!user.admin) fail(403,'Доступ только для администратора.');
-        if (req.method==='GET' && path==='/api/admin/orders') return send(200,{orders:db.prepare('SELECT orders.*,users.username FROM orders JOIN users ON users.id=orders.user_id ORDER BY orders.created_at DESC').all()});
+        if (req.method==='GET' && path==='/api/admin/orders') return send(200,{orders:await sbRows('/store_orders?select=*&order=created_at.desc')});
         const match = /^\/api\/admin\/orders\/([a-f0-9-]+)$/.exec(path);
         if (req.method==='POST' && match) {
           const b = await body(req); if (!['approve','reject'].includes(b.action)) fail(400,'Неизвестное действие.');
-          db.exec('BEGIN IMMEDIATE');
-          try {
-            const order = db.prepare('SELECT * FROM orders WHERE id=?').get(match[1]);
-            if (!order || order.status!=='pending') fail(409,'Заказ уже обработан или не найден.');
-            const owner = db.prepare('SELECT * FROM users WHERE id=?').get(order.user_id);
-            if (b.action==='approve') {
-              if (order.product_id==='beta') { if (!owner.lifetime) fail(409,'Для Beta требуется Lifetime.'); db.prepare('UPDATE users SET beta=1 WHERE id=?').run(owner.id); }
-              else if (order.product_id==='lifetime') db.prepare('UPDATE users SET lifetime=1,expires_at=NULL WHERE id=?').run(owner.id);
-              else {
-                if (owner.lifetime) fail(409,'У пользователя уже есть Lifetime.');
-                const days = products.find(p=>p.id===order.product_id).days;
-                const expiry = new Date(Math.max(now,Date.parse(owner.expires_at)||0)+days*86400000).toISOString();
-                db.prepare('UPDATE users SET expires_at=? WHERE id=?').run(expiry,owner.id);
-              }
+          const order = await sbFirst(`/store_orders?id=eq.${match[1]}&select=*`);
+          if (!order || order.status!=='pending') fail(409,'Заказ уже обработан или не найден.');
+          const owner = await sbUserById(order.user_id);
+          if (!owner) fail(409,'Аккаунт пользователя не найден.');
+          let ownerPatch = null;
+          if (b.action==='approve') {
+            if (order.product_id==='beta') { if (!owner.lifetime) fail(409,'Для Beta требуется Lifetime.'); ownerPatch = { beta:true }; }
+            else if (order.product_id==='lifetime') ownerPatch = { lifetime:true, expires_at:null };
+            else {
+              if (owner.lifetime) fail(409,'У пользователя уже есть Lifetime.');
+              const days = products.find(p=>p.id===order.product_id).days;
+              ownerPatch = { expires_at:new Date(Math.max(now,Date.parse(owner.expires_at)||0)+days*86400000).toISOString() };
             }
-            db.prepare('UPDATE orders SET status=?,reviewed_by=?,reviewed_at=? WHERE id=?').run(b.action==='approve'?'approved':'rejected',user.id,new Date().toISOString(),order.id);
-            db.exec('COMMIT'); return send(200,{ok:true});
-          } catch(e) { db.exec('ROLLBACK'); throw e; }
+            await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(owner.id)}`, ownerPatch, 'return=minimal');
+            sbUserPut({ ...owner, ...ownerPatch });
+          }
+          const patched = await sb('PATCH', `/store_orders?id=eq.${order.id}&status=eq.pending`, { status:b.action==='approve'?'approved':'rejected', reviewed_by:user.id, reviewed_at:new Date().toISOString() }, 'return=representation');
+          if (!patched || !patched.length) fail(409,'Заказ уже обработан или не найден.');
+          return send(200,{ok:true});
         }
       }
       fail(404,'Страница не найдена.');
