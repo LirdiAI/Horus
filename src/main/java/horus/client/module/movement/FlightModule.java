@@ -35,6 +35,7 @@ import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerAbilitiesS2CPacket;
 import net.minecraft.screen.slot.SlotActionType;
@@ -61,6 +62,8 @@ public final class FlightModule extends Module {
    public BooleanSetting instantStop;
    public BooleanSetting smoothSetting;
    public BooleanSetting autoFlySetting;
+   public NumberSetting packetLimit;
+   private Vec3d lastSentPos;
    private final HashMap<BlockPos, Long> map = new HashMap<>();
    private final Stopwatch stopwatch = new Stopwatch();
    private int intVal = -1;
@@ -316,6 +319,13 @@ public final class FlightModule extends Module {
          new BooleanSetting("Авто /fly", "Автоматически вводит /fly при включении режима.", true)
             .withVisibility(() -> this.modeSetting.isSelected("SpootyFly"))
       );
+      this.packetLimit = this.addSetting(
+         new NumberSetting("Лимит пакета", "Максимум блоков в одном пакете движения: большие дельты дробятся на части, чтобы античит не флагал.")
+            .withRange(0.1F, 2.0F)
+            .withStep(0.05F)
+            .setValue(0.5F)
+            .withVisibility(() -> this.modeSetting.isSelected("SpootyFly"))
+      );
       this.autoEnableFly = this.addSetting(
          new BooleanSetting("Авто /fly", "Автоматически включает режим полёта при включении модуля.", true)
             .withVisibility(() -> this.modeSetting.isSelected("Dragon Fly"))
@@ -433,6 +443,40 @@ public final class FlightModule extends Module {
       }
 
       return true;
+   }
+
+   // Вызывается миксином перед ванильной отправкой пакета движения: дробим большую дельту на части
+   public void splitMovePackets() {
+      if (mc.player == null || mc.player.networkHandler == null) {
+         this.lastSentPos = null;
+         return;
+      }
+
+      if (!this.isEnabled() || !this.modeSetting.isSelected("SpootyFly")) {
+         this.lastSentPos = null;
+         return;
+      }
+
+      Vec3d now = mc.player.getEntityPos();
+      if (this.lastSentPos == null) {
+         this.lastSentPos = now;
+         return;
+      }
+
+      Vec3d delta = now.subtract(this.lastSentPos);
+      double distance = delta.length();
+      double limit = Math.max(0.05, this.packetLimit.floatValue() * 0.98);
+      int steps = (int) Math.ceil(distance / limit);
+      if (steps > 1 && steps <= 32) {
+         for (int index = 1; index < steps; index++) {
+            Vec3d point = this.lastSentPos.add(delta.multiply(index / (double) steps));
+            mc.player.networkHandler.sendPacket(
+               new PlayerMoveC2SPacket.PositionAndOnGround(point.x, point.y, point.z, mc.player.isOnGround(), mc.player.horizontalCollision)
+            );
+         }
+      }
+
+      this.lastSentPos = now;
    }
 
    @Override

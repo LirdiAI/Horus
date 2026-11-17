@@ -7,6 +7,7 @@ import horus.client.module.combat.NoEntityTraceModule;
 import horus.client.module.player.NoPushModule;
 import horus.client.event.PlayerSlowdownEvent;
 import horus.client.event.PlayerTickEvent;
+import horus.client.module.movement.FlightModule;
 import horus.client.module.combat.AttackController;
 import horus.client.util.GroundTicksAccess;
 import horus.client.RotationManager;
@@ -41,6 +42,7 @@ public abstract class ClientPlayerEntityMixin2 implements GroundTicksAccess {
 
    @Inject(method = "sendMovementPackets()V", at = @At("HEAD"))
    private void countGroundTicks(CallbackInfo callbackInfo) {
+      FlightModule.getInstance().splitMovePackets();
       if (((ClientPlayerEntity)(Object)this).isOnGround()) {
          this.ticksOnGround++;
       } else {
