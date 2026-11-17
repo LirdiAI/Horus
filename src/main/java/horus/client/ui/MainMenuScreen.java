@@ -12,6 +12,7 @@ import horus.client.ui.UiTheme;
 import horus.client.ui.panel.AccountManagerPanel;
 import horus.client.ui.AnimatedValue;
 import horus.client.render.Render2D;
+import horus.client.render.SoftGlowDrawData;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -211,18 +212,44 @@ public class MainMenuScreen extends Screen {
       float altEase = UiTheme.computeFloat2(altAnim);
       float overlayAnim = altEase;
 
-      // Фон: фото-обои из шейдер-мокапа + затемнение + виньетка по краям
+      // Фон: фото-обои из шейдер-мокапа + живые режимы + мягкое welcome-затемнение
       this.tickGif();
-      Render2D.processData89(
-              this.customBgTexture != null && MenuStore.customPhoto() != null && !MenuStore.customPhoto().isBlank()
-                    ? MenuStore.currentBackground() : MenuStore.backgroundAt(MenuStore.backgroundIndex()),
-              0.0F,
-              0.0F,
-              screenW,
-              screenH,
-              0.0F,
-              0xFFFFFFFF
-      );
+      int liveMode = MenuStore.liveMode();
+      if (liveMode == 1) {
+         // «Дыхание» — медленный зум/панорама обоев (Ken Burns)
+         long now = System.currentTimeMillis();
+         double phase = (now % 26000L) / 26000.0 * Math.PI * 2.0;
+         double phase2 = (now % 34000L) / 34000.0 * Math.PI * 2.0;
+         float zoom = 1.14F + 0.05F * (float) Math.sin(phase);
+         float panX = 16.0F * (float) Math.sin(phase2);
+         float panY = 12.0F * (float) Math.cos(phase2 * 0.8F);
+         Render2D.processData89(
+                 this.customBgTexture != null && MenuStore.customPhoto() != null && !MenuStore.customPhoto().isBlank()
+                       ? MenuStore.currentBackground() : MenuStore.backgroundAt(MenuStore.backgroundIndex()),
+                 -panX - (screenW * zoom - screenW) / 2.0F,
+                 -panY - (screenH * zoom - screenH) / 2.0F,
+                 screenW * zoom,
+                 screenH * zoom,
+                 0.0F,
+                 0xFFFFFFFF
+         );
+      } else {
+         Render2D.processData89(
+                 this.customBgTexture != null && MenuStore.customPhoto() != null && !MenuStore.customPhoto().isBlank()
+                       ? MenuStore.currentBackground() : MenuStore.backgroundAt(MenuStore.backgroundIndex()),
+                 0.0F,
+                 0.0F,
+                 screenW,
+                 screenH,
+                 0.0F,
+                 0xFFFFFFFF
+         );
+      }
+      if (liveMode == 2) {
+         this.drawLiveParticles(screenW, screenH, scale);
+      } else if (liveMode == 3) {
+         this.drawLiveAurora(screenW, screenH, scale);
+      }
       if (this.flag3) {
          float welcomeFade = UiTheme.computeFloat2(UiTheme.computeFloat3(this.timeMillis, 100L, 600L));
          if (welcomeFade < 0.999F) {
@@ -988,6 +1015,48 @@ public class MainMenuScreen extends Screen {
       this.gifFrames = null;
       this.gifDelays = null;
       this.gifShownFrame = -1;
+   }
+
+   // Живые обои: парящие светящиеся частицы поверх фона
+   private void drawLiveParticles(float w, float h, float scale) {
+      long now = System.currentTimeMillis();
+      float t = (now % 60000L) / 1000.0F;
+      float span = h + 140.0F * scale;
+
+      for (int i = 0; i < 34; i++) {
+         float r1 = frac(i * 12.9898F);
+         float r2 = frac(i * 78.233F);
+         float r3 = frac(i * 39.425F);
+         float speed = (8.0F + r1 * 16.0F) * scale;
+         float size = (2.0F + r2 * 4.5F) * scale;
+         float sway = (14.0F + r3 * 26.0F) * scale * (float) Math.sin(t * (0.3F + r3 * 0.4F) + i * 1.3F);
+         float y = span - ((t * speed + r2 * span) % span) - 50.0F * scale;
+         float x = r1 * w + sway;
+         float alpha = 0.12F + 0.13F * (float) Math.sin(t * 0.8F + i * 1.7F);
+         alpha = Math.max(0.05F, alpha);
+         int color = i % 3 == 0 ? 0xFFFFFFFF : 0xFFB08CFF;
+         Render2D.processData58(new SoftGlowDrawData(x - size, y - size, size, size, size / 2.0F, UiTheme.computeInt(color, alpha), size * 2.4F).withIntensity(0.85F));
+      }
+   }
+
+   // Живые обои: медленно плывущая фиолетовая дымка поверх фона
+   private void drawLiveAurora(float w, float h, float scale) {
+      long now = System.currentTimeMillis();
+      float t = (now % 90000L) / 1000.0F;
+      float[][] blobs = {{0.25F, 0.3F, 0.06F, 300.0F}, {0.7F, 0.6F, -0.045F, 360.0F}, {0.5F, 0.85F, 0.035F, 260.0F}};
+
+      for (int i = 0; i < blobs.length; i++) {
+         float cx = w * blobs[i][0] + w * blobs[i][2] * (float) Math.sin(t * (0.25F + i * 0.08F));
+         float cy = h * blobs[i][1] + h * 0.08F * (float) Math.cos(t * (0.2F + i * 0.07F) + i);
+         float radius = blobs[i][3] * scale;
+         int color = i == 1 ? 0xFF8F7BFF : 0xFFB08CFF;
+         float alpha = 0.10F + 0.05F * (float) Math.sin(t * 0.5F + i * 2.1F);
+         Render2D.processData58(new SoftGlowDrawData(cx - radius, cy - radius, radius * 2.0F, radius * 2.0F, radius, UiTheme.computeInt(color, Math.max(0.04F, alpha)), radius * 0.9F).withIntensity(0.9F));
+      }
+   }
+
+   private static float frac(float value) {
+      return (float) Math.sin(value) * 43758.5453F % 1.0F;
    }
 
    // подмена кадра текстуры по таймингам GIF (вызывается каждый кадр рендера)

@@ -833,6 +833,14 @@ final class MainMenuModals {
                MenuStore.centerLayout() == i, interactive, () -> MenuStore.setCenterLayout(layout), mx, my);
       }
       y += 22.0F * scale;
+      String[] liveNames = {Lang.tr("Статика", "Static"), Lang.tr("Дыхание", "Breathing"), Lang.tr("Частицы", "Particles"), Lang.tr("Дымка", "Aurora")};
+      float liveW = (w - 18.0F * scale) / 4.0F;
+      for (int i = 0; i < liveNames.length; i++) {
+         final int mode = i;
+         this.studioButton(x + i * (liveW + 6.0F * scale), y, liveW, scale, liveNames[i],
+               MenuStore.liveMode() == i, interactive, () -> MenuStore.setLiveMode(mode), mx, my);
+      }
+      y += 22.0F * scale;
       this.studioButton(x, y, w, scale,
             Lang.tr("Глянец кнопок: ", "Button gloss: ") + (MenuStore.glossy() ? Lang.tr("ВКЛ", "ON") : Lang.tr("ВЫКЛ", "OFF")),
             MenuStore.glossy(), interactive, MenuStore::toggleGlossy, mx, my);

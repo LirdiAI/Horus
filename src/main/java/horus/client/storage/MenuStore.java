@@ -22,6 +22,7 @@ public final class MenuStore {
    private static String customPhoto; // путь к своему фото на диске (null = не задано)
    private static String photoName = "";
    private static boolean glossy = true; // стеклянный глянец кнопок
+   private static int liveMode; // 0 = статика, 1 = дыхание, 2 = частицы, 3 = дымка
    private static boolean loaded;
    private static boolean saveFailed;
    public static boolean saveFailed() { return saveFailed; }
@@ -60,6 +61,10 @@ public final class MenuStore {
             if (root.has("gloss") && root.get("gloss").isJsonPrimitive()) {
                glossy = root.get("gloss").getAsBoolean();
             }
+
+            if (root.has("live")) {
+               liveMode = Math.max(0, Math.min(3, root.get("live").getAsInt()));
+            }
          }
       } catch (Exception ignored) {
       }
@@ -76,6 +81,7 @@ public final class MenuStore {
          root.addProperty("photo", customPhoto == null ? "" : customPhoto);
          root.addProperty("photoName", photoName == null ? "" : photoName);
          root.addProperty("gloss", glossy);
+         root.addProperty("live", liveMode);
          Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
          Files.writeString(temporary, root.toString(), StandardCharsets.UTF_8);
          Files.move(temporary, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
@@ -130,6 +136,20 @@ public final class MenuStore {
    public static int centerLayout() {
       ensureLoaded();
       return centerLayout;
+   }
+
+   public static int liveMode() {
+      ensureLoaded();
+      return liveMode;
+   }
+
+   public static void setLiveMode(int value) {
+      ensureLoaded();
+      int mode = Math.max(0, Math.min(3, value));
+      if (mode != liveMode) {
+         liveMode = mode;
+         save();
+      }
    }
 
    public static void setCenterLayout(int index) {
