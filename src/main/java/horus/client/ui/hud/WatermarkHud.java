@@ -417,7 +417,7 @@ public final class WatermarkHud {
                HudIcons.TIME.processData(local3942_4, local3942_9, this.floatVal6, local3942_7);
          }
 
-         if (this.strVal3 != null && !this.strVal3.isEmpty()) {
+         if (this.strVal3 != null && !this.strVal3.isEmpty() && !"user".equals(this.strVal)) {
             float local3942_10 = Math.round((local3942_4 + this.floatVal6 + 2.5F) * 2.0F) / 2.0F;
             FontText.processData3(FontFace.SEMI, this.strVal3, local3942_10, local3942_2 - 3.5F, 6.0F, local3942_8);
             if (this.strVal4 != null && !this.strVal4.isEmpty()) {
