@@ -9,11 +9,10 @@ import horus.client.util.Animation;
 
 import horus.mixin.BossBarHudMixin;
 import horus.client.util.Easings;
-import horus.client.util.SupabaseProfileManager;
 import horus.client.render.FontFace;
 import horus.client.module.render.InterfaceModule;
 import ru.dreamix.protection.api.impl.profile.ProfileAPI;
-import ru.dreamix.protection.api.impl.profile.objects.RoleObject;
+import horus.client.render.ThemeColors;
 import horus.client.render.Render2D;
 
 import java.time.LocalTime;
@@ -86,7 +85,7 @@ public final class WatermarkHud {
                local3930_7.processData3(null, null, 12.0F);
                break;
             case "user":
-               local3930_7.processData3(name, computeUserSecondLine(), 7.0F);
+               local3930_7.processData3(null, null, 7.0F);
                break;
             case "fps":
                local3930_7.processData3(String.valueOf((int)animator2.floatValue()), "FPS", 7.0F);
@@ -266,38 +265,6 @@ public final class WatermarkHud {
          : ThemeColors.computeFloat((local3937_1 - local3937_0) / (local3937_1 - local3937_2));
    }
 
-   private static String computeUserSecondLine() {
-      RoleObject roleObj = SupabaseProfileManager.parseRole(SupabaseProfileManager.getActiveRole());
-      String roleTag;
-      switch (roleObj) {
-         case BETA:
-            roleTag = "Beta";
-            break;
-         case ADMIN:
-            roleTag = "Admin";
-            break;
-         case YOUTUBE:
-            roleTag = "YouTube";
-            break;
-         default:
-            roleTag = "Render";
-      }
-      String till = SupabaseProfileManager.getActiveSubscriptionTill();
-      if (till == null || till.trim().isEmpty()) {
-         till = "23.10.2047";
-      } else {
-         till = till.trim();
-         int dot = till.lastIndexOf('.');
-         try {
-            if (dot >= 0 && Integer.parseInt(till.substring(dot + 1).trim()) >= 2047) {
-               till = "23.10.2047";
-            }
-         } catch (NumberFormatException ignored) {
-         }
-      }
-      return roleTag + " · Till " + till;
-   }
-
    private static void processData2(float local3938_0) {
       float local3938_1 = local3938_0 - floatVal5 + nested0435.computeFloat3() / 2.0F;
       list.remove(nested0435);
@@ -388,22 +355,9 @@ public final class WatermarkHud {
                   UiTheme.computeInt(-1, local3942_3)
                );
                break;
-            case "user": {
+            case "user":
                HudIcons.USER.processData(local3942_4, local3942_9, this.floatVal6, local3942_7);
-               float local3942_12 = local3942_4 + this.floatVal6 + 3.0F;
-               FontText.processData3(FontFace.SEMI_BOLD, this.strVal3, local3942_12, local3942_1 + 2.2F, 5.8F, local3942_8);
-               if (this.strVal4 != null && !this.strVal4.isEmpty()) {
-                  FontText.processData3(
-                     FontFace.SEMI,
-                     this.strVal4,
-                     local3942_12,
-                     local3942_1 + 9.3F,
-                     4.4F,
-                     UiTheme.computeInt(WatermarkHud.computeInt(HudStyle.computeInt4(1.0F), local3942_6), local3942_3 * 0.65F)
-                  );
-               }
                break;
-            }
             case "fps":
                HudIcons.FPS.processData(local3942_4, local3942_9, this.floatVal6, local3942_7);
                break;
@@ -443,13 +397,6 @@ public final class WatermarkHud {
       }
 
       float computeFloat5() {
-         if ("user".equals(this.strVal)) {
-            float local3944_0 = Math.max(
-               this.strVal3 == null ? 0.0F : FontText.computeFloat(FontFace.SEMI_BOLD, this.strVal3, 5.8F),
-               this.strVal4 == null || this.strVal4.isEmpty() ? 0.0F : FontText.computeFloat(FontFace.SEMI, this.strVal4, 4.4F)
-            );
-            return this.floatVal6 + 3.0F + local3944_0 + 1.5F;
-         }
          if (!this.flag) {
             return 0.0F;
          }
