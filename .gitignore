@@ -31,3 +31,5 @@ node_modules/
 **/horus_hwid.txt
 **/accounts.json
 *.log
+scripts/patch_*.py
+scripts/fix_*.py
