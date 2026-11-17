@@ -24,7 +24,7 @@ export function openDatabase(file) {
     CREATE TABLE IF NOT EXISTS limits(key TEXT PRIMARY KEY,count INTEGER NOT NULL,until INTEGER NOT NULL);`);
   return db;
 }
-const userView = u => u ? { id:u.id, username:u.username, email:u.email, created_at:u.created_at, hwid:u.hwid, lifetime:!!u.lifetime, expires_at:u.expires_at, beta:!!u.beta, admin:!!u.admin } : null;
+const userView = u => u ? { id:u.id, username:u.username, email:u.email, created_at:u.created_at, hwid:u.hwid, lifetime:!!u.lifetime, expires_at:u.expires_at, beta:!!u.beta, admin:!!u.admin, frozen:!!u.frozen, avatar_url:u.avatar_url||null, banner_url:u.banner_url||null } : null;
 async function passwordHash(password) {
   const salt = randomBytes(16).toString('hex');
   return salt + ':' + (await scrypt(password, salt, 64)).toString('hex');
@@ -62,9 +62,9 @@ async function sbUserCached(id) {
 }
 const sbUserPut = u => { if (u) userCache.set(u.id, { u, t: Date.now() }); };
 function fail(status, message) { throw Object.assign(new Error(message), { status }); }
-async function body(req) {
+async function body(req, max = 8192) {
   if (!req.headers['content-type']?.startsWith('application/json')) fail(415, 'Ожидается JSON.');
-  let data = ''; for await (const chunk of req) { data += chunk; if (data.length > 8192) fail(413, 'Слишком большой запрос.'); }
+  let data = ''; for await (const chunk of req) { data += chunk; if (data.length > max) fail(413, 'Слишком большой запрос.'); }
   try { const value = JSON.parse(data); if (!value || Array.isArray(value) || typeof value !== 'object') throw Error(); return value; }
   catch { fail(400, 'Некорректный запрос.'); }
 }
@@ -79,7 +79,7 @@ export function createStore({ database = join(root, 'data/sessions.sqlite'), sec
   const server = http.createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'same-origin');
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     const send = (status, value) => { res.writeHead(status, { 'Content-Type':'application/json; charset=utf-8', 'Cache-Control':'no-store' }); res.end(JSON.stringify(value)); };
     try {
       const url = new URL(req.url, 'http://localhost');
@@ -151,16 +151,54 @@ export function createStore({ database = join(root, 'data/sessions.sqlite'), sec
         await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(user.id)}`, { password:digest }, 'return=minimal');
         db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(user.id,session.token); return send(200,{ok:true});
       }
+      const imgMatch = /^\/api\/profile\/(avatar|banner)$/.exec(path);
+      if (req.method === 'POST' && imgMatch) {
+        limited('img:'+user.id,15);
+        const b = await body(req, 560000);
+        const img = typeof b.image === 'string' ? b.image : '';
+        if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(img)) fail(400,'Нужна картинка PNG, JPEG или WebP.');
+        if (img.length > (imgMatch[1]==='avatar' ? 300000 : 540000)) fail(400,'Картинка слишком большая. Сожмите её или выберите файл поменьше.');
+        const field = imgMatch[1]==='avatar' ? 'avatar_url' : 'banner_url';
+        await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(user.id)}`, { [field]:img }, 'return=minimal');
+        user = { ...user, [field]:img }; sbUserPut(user); return send(200,{ok:true});
+      }
+      if (req.method === 'POST' && path === '/api/profile/clear-image') {
+        const b = await body(req); const field = b.field==='avatar' ? 'avatar_url' : b.field==='banner' ? 'banner_url' : null;
+        if (!field) fail(400,'Неизвестное поле.');
+        await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(user.id)}`, { [field]:null }, 'return=minimal');
+        user = { ...user, [field]:null }; sbUserPut(user); return send(200,{ok:true});
+      }
+      if (req.method === 'POST' && path === '/api/promo/validate') {
+        const b = await body(req); const code = String(b.code||'').trim().toUpperCase();
+        if (!code) fail(400,'Введите промокод.');
+        const promo = await sbFirst(`/store_promos?code=eq.${encodeURIComponent(code)}&select=*`);
+        if (!promo) fail(400,'Промокод не найден.');
+        if (promo.uses_left <= 0) fail(409,'Промокод больше не действует.');
+        if (promo.expires_at && Date.parse(promo.expires_at) < now) fail(409,'Срок действия промокода истёк.');
+        return send(200,{discount_percent:promo.discount_percent});
+      }
       if (req.method === 'GET' && path === '/api/orders') return send(200,{orders:await sbRows(`/store_orders?user_id=eq.${encodeURIComponent(user.id)}&select=*&order=created_at.desc`)});
       if (req.method === 'POST' && path === '/api/orders') {
+        if (user.frozen) fail(403,'Аккаунт заморожен администрацией. Обратитесь к владельцу магазина.');
         limited('order:'+user.id,30); const b = await body(req); const p = products.find(p=>p.id===b.productId);
         if (!p) fail(400,'Тариф не найден.');
         if (p.id==='beta' && !user.lifetime) fail(409,'Beta доступна только владельцам Lifetime.');
         if ((p.id==='beta' && user.beta) || (p.id!=='beta' && user.lifetime)) fail(409,'Этот доступ уже есть у вашего аккаунта.');
         const existing = await sbFirst(`/store_orders?user_id=eq.${encodeURIComponent(user.id)}&status=eq.pending&select=id`);
         if (existing) fail(409,'У вас уже есть заказ на рассмотрении. Отмените его в профиле или дождитесь подтверждения.');
-        const order = {id:randomUUID(),user_id:user.id,username:user.username,product_id:p.id,product_name:p.name,amount:p.price,status:'pending',created_at:new Date().toISOString()};
+        const promoCode = String(b.promo||'').trim().toUpperCase();
+        let discount = 0;
+        if (promoCode) {
+          const promo = await sbFirst(`/store_promos?code=eq.${encodeURIComponent(promoCode)}&select=*`);
+          if (!promo) fail(400,'Промокод не найден.');
+          if (promo.uses_left <= 0) fail(409,'Промокод больше не действует.');
+          if (promo.expires_at && Date.parse(promo.expires_at) < now) fail(409,'Срок действия промокода истёк.');
+          discount = promo.discount_percent;
+        }
+        const amount = Math.max(0, p.price - Math.round(p.price * discount / 100));
+        const order = {id:randomUUID(),user_id:user.id,username:user.username,product_id:p.id,product_name:p.name,amount,discount,promo_code:discount?promoCode:null,status:'pending',created_at:new Date().toISOString()};
         await sb('POST', '/store_orders', order, 'return=minimal');
+        if (discount) await sb('PATCH', `/store_promos?code=eq.${encodeURIComponent(promoCode)}&uses_left=gt.0`, { uses_left:Math.max(0,promo.uses_left-1) }, 'return=minimal');
         return send(201,{order});
       }
       const cancel = /^\/api\/orders\/([a-f0-9-]+)\/cancel$/.exec(path);
@@ -170,6 +208,48 @@ export function createStore({ database = join(root, 'data/sessions.sqlite'), sec
       }
       if (path.startsWith('/api/admin/')) {
         if (!user.admin) fail(403,'Доступ только для администратора.');
+        if (req.method==='GET' && path==='/api/admin/promos') return send(200,{promos:await sbRows('/store_promos?select=*&order=created_at.desc&limit=50')});
+        if (req.method==='POST' && path==='/api/admin/promos') {
+          limited('promo:'+user.id,30); const b = await body(req);
+          const code = String(b.code||'').trim().toUpperCase();
+          if (!/^[A-Z0-9_-]{3,24}$/.test(code)) fail(400,'Код: 3–24 символа — латиница, цифры, _ или -.');
+          const discount = Math.floor(Number(b.discount));
+          if (!Number.isFinite(discount) || discount < 1 || discount > 90) fail(400,'Скидка — целое число от 1 до 90%.');
+          const uses = Math.max(1, Math.min(9999, Math.floor(Number(b.uses)||1)));
+          const days = Math.max(0, Math.min(365, Math.floor(Number(b.days)||0)));
+          const expires_at = days ? new Date(now + days*86400000).toISOString() : null;
+          try { await sb('POST', '/store_promos', { code, discount_percent:discount, uses_left:uses, expires_at, created_by:user.username }, 'return=minimal'); }
+          catch(e) { if (e.code==='UNIQUE') fail(409,'Такой промокод уже существует.'); throw e; }
+          return send(201,{ok:true});
+        }
+        if (req.method==='POST' && path==='/api/admin/promos/delete') {
+          const b = await body(req); const code = String(b.code||'').trim().toUpperCase();
+          if (!/^[A-Z0-9_-]{3,24}$/.test(code)) fail(400,'Некорректный код.');
+          await sb('DELETE', `/store_promos?code=eq.${encodeURIComponent(code)}`); return send(200,{ok:true});
+        }
+        if (req.method==='POST' && path==='/api/admin/grant') {
+          const b = await body(req); const target = await sbUserByName(String(b.username||'').trim());
+          if (!target) fail(404,'Аккаунт с таким логином не найден.');
+          let patch;
+          if (b.product==='beta') patch = { beta:true };
+          else if (b.product==='lifetime') patch = { lifetime:true, expires_at:null };
+          else {
+            const p = products.find(p=>p.id===b.product);
+            if (!p) fail(400,'Тариф не найден.');
+            patch = { expires_at:new Date(Math.max(now, Date.parse(target.expires_at)||0) + p.days*86400000).toISOString(), lifetime:false };
+          }
+          await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(target.id)}`, patch, 'return=minimal');
+          sbUserPut({ ...target, ...patch });
+          return send(200,{ok:true, username:target.username});
+        }
+        if (req.method==='POST' && path==='/api/admin/freeze') {
+          const b = await body(req); const target = await sbUserByName(String(b.username||'').trim());
+          if (!target) fail(404,'Аккаунт с таким логином не найден.');
+          if (target.id === user.id) fail(400,'Нельзя заморозить собственный аккаунт.');
+          await sb('PATCH', `/store_users?id=eq.${encodeURIComponent(target.id)}`, { frozen:!!b.frozen }, 'return=minimal');
+          sbUserPut({ ...target, frozen:!!b.frozen });
+          return send(200,{ok:true, frozen:!!b.frozen, username:target.username});
+        }
         if (req.method==='GET' && path==='/api/admin/orders') return send(200,{orders:await sbRows('/store_orders?select=*&order=created_at.desc')});
         const match = /^\/api\/admin\/orders\/([a-f0-9-]+)$/.exec(path);
         if (req.method==='POST' && match) {
