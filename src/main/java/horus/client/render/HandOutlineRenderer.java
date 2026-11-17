@@ -1,6 +1,7 @@
 package horus.client.render;
 
 import horus.client.HorusClient;
+import horus.client.module.render.ItemOutlineModule;
 import horus.client.module.render.SwordAnimationsModule;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
@@ -27,7 +28,17 @@ import net.minecraft.client.util.BufferAllocator;
 import org.lwjgl.system.MemoryStack;
 
 public final class HandOutlineRenderer {
-   private static HandOutlineRenderer handOutlineRenderer;
+   private static HandOutlineParams outlineParams() {
+      ItemOutlineModule itemOutline = ItemOutlineModule.getInstance();
+      if (itemOutline.isEnabled()) {
+         return itemOutline;
+      }
+
+      SwordAnimationsModule swordAnimations = SwordAnimationsModule.getInstance();
+      return swordAnimations.checkState4() ? swordAnimations : null;
+   }
+
+   private static HandOutlineRenderer handOutlineRenderer = new HandOutlineRenderer();
    private static final RenderPipeline pipeline2 = RenderPipeline.builder()
       .withLocation(HorusClient.id("pipeline/hand_outline"))
       .withVertexShader(HorusClient.id("core/hand_outline"))
@@ -66,7 +77,8 @@ public final class HandOutlineRenderer {
       if (this.flag2) {
          this.flag2 = false;
          this.flag = false;
-         if (SwordAnimationsModule.getInstance().checkState4()) {
+         HandOutlineParams params = outlineParams();
+         if (params != null && params.outlineEnabled()) {
             Framebuffer framebuffer = MinecraftClient.getInstance().getFramebuffer();
             if (framebuffer != null
                && framebuffer.getColorAttachmentView() != null
@@ -96,12 +108,12 @@ public final class HandOutlineRenderer {
 
                   try {
                      ByteBuffer byteBuffer = memoryStack.calloc(48);
-                     byteBuffer.putFloat(0, (SwordAnimationsModule.getInstance().computeInt2() >> 16 & 0xFF) / 255.0F);
-                     byteBuffer.putFloat(4, (SwordAnimationsModule.getInstance().computeInt2() >> 8 & 0xFF) / 255.0F);
-                     byteBuffer.putFloat(8, (SwordAnimationsModule.getInstance().computeInt2() & 0xFF) / 255.0F);
-                     byteBuffer.putFloat(12, SwordAnimationsModule.getInstance().fill.getValue());
-                     byteBuffer.putFloat(24, SwordAnimationsModule.getInstance().outline.getValue());
-                     byteBuffer.putFloat(28, SwordAnimationsModule.getInstance().highlight.getValue());
+                     byteBuffer.putFloat(0, (params.outlineColor() >> 16 & 0xFF) / 255.0F);
+                     byteBuffer.putFloat(4, (params.outlineColor() >> 8 & 0xFF) / 255.0F);
+                     byteBuffer.putFloat(8, (params.outlineColor() & 0xFF) / 255.0F);
+                     byteBuffer.putFloat(12, params.fillValue());
+                     byteBuffer.putFloat(24, params.outlineValue());
+                     byteBuffer.putFloat(28, params.highlightValue());
                      byteBuffer.putFloat(32, 1.0F / framebuffer.textureWidth);
                      byteBuffer.putFloat(36, 1.0F / framebuffer.textureHeight);
                      RenderSystem.getDevice().createCommandEncoder().writeToBuffer(this.gpuBuffer2.slice(0L, 48L), byteBuffer);
@@ -150,7 +162,7 @@ public final class HandOutlineRenderer {
    }
 
    public void updateState2() {
-      if (this.flag && SwordAnimationsModule.getInstance().checkState4()) {
+      if (this.flag && outlineParams() != null) {
          Framebuffer framebuffer = MinecraftClient.getInstance().getFramebuffer();
          if (framebuffer != null && framebuffer.getDepthAttachment() != null) {
             GpuTexture depthAttachment = framebuffer.getDepthAttachment();
@@ -259,7 +271,7 @@ public final class HandOutlineRenderer {
    }
 
    public void updateState5() {
-      if (!SwordAnimationsModule.getInstance().checkState4()) {
+      if (outlineParams() == null) {
          this.updateState4();
       } else {
          Framebuffer framebuffer = MinecraftClient.getInstance().getFramebuffer();

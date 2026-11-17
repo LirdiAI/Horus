@@ -54,6 +54,7 @@ import horus.client.module.player.InvManagerModule;
 import horus.client.module.player.TapeMouseModule;
 import horus.client.module.render.CrosshairModule;
 import horus.client.module.render.ItemGlintModule;
+import horus.client.module.render.ItemOutlineModule;
 import horus.client.module.render.CustomWorldModule;
 import horus.client.module.misc.DiscordRPCModule;
 import horus.client.module.misc.MultiAccountModule;
@@ -254,6 +255,7 @@ public final class ModuleManager {
          TotemGhostModule.getInstance();
          registerModule(CrosshairModule.getInstance());
          registerModule(ItemGlintModule.getInstance());
+         registerModule(ItemOutlineModule.getInstance());
          registerModule(ArrowsModule.getInstance());
          registerModule(BassBoostModule.getInstance());
          registerModule(ClickActionModule.getInstance());

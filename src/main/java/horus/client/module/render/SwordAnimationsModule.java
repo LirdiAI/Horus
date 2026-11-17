@@ -20,8 +20,8 @@ import net.minecraft.util.math.RotationAxis;
 import org.joml.Quaternionf;
 
 @ModuleInfo(name = "SwordAnimations", description = "Позволяет изменять анимацию удара.", category = ModuleCategory.RENDER)
-public final class SwordAnimationsModule extends Module {
-   private static SwordAnimationsModule swordAnimationsModule;
+public final class SwordAnimationsModule extends Module implements horus.client.render.HandOutlineParams {
+   private static SwordAnimationsModule swordAnimations;
    public ModeSetting modeSetting = this.addSetting(
       new ModeSetting("Тип", "Вариант анимации удара.", "Мод 1", "Нету", "Мод 1", "Мод 2", "Мод 3", "Мод 4", "Мод 5", "Мод 6", "Мод 7", "Мод 8")
    );
@@ -163,16 +163,41 @@ public final class SwordAnimationsModule extends Module {
       return this.customColor.isChecked() ? this.colorSetting.getValue() : UiTheme.intVal7;
    }
 
+   @Override
+   public boolean outlineEnabled() {
+      return this.checkState4();
+   }
+
+   @Override
+   public int outlineColor() {
+      return this.computeInt2();
+   }
+
+   @Override
+   public float fillValue() {
+      return this.fill.getValue();
+   }
+
+   @Override
+   public float outlineValue() {
+      return this.outline.getValue();
+   }
+
+   @Override
+   public float highlightValue() {
+      return this.highlight.getValue();
+   }
+
    public boolean matchesCriteria(Arm arm) {
       return this.isEnabled() && !this.checkState3() && this.checkState() && mc.player != null && arm == mc.player.getMainArm();
    }
 
    public static SwordAnimationsModule getInstance() {
-      if (swordAnimationsModule == null) {
-         swordAnimationsModule = new SwordAnimationsModule();
+      if (swordAnimations == null) {
+         swordAnimations = new SwordAnimationsModule();
       }
 
-      return swordAnimationsModule;
+      return swordAnimations;
    }
 
    private SwordAnimationsModule() {
