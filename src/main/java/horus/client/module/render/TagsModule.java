@@ -76,7 +76,7 @@ import net.minecraft.world.GameMode;
 import org.joml.Vector4f;
 
 @ModuleInfo(name = "Tags", description = "Ники, предметы, броня и руки игроков поверх мира.", category = ModuleCategory.RENDER)
-public final class TagsModule extends Module {
+public final class TagsModule extends Module implements horus.client.render.PlayerOutlineParams {
    private static TagsModule tagsModule;
    private static int intVal = new Color(15, 15, 15, 155).getRGB();
    private static int intVal2 = new Color(0, 255, 0, 40).getRGB();
@@ -380,6 +380,31 @@ public final class TagsModule extends Module {
 
    public int computeInt2() {
       return this.customColor.isChecked() ? this.color.getValue() : UiTheme.intVal7;
+   }
+
+   @Override
+   public boolean outlineEnabled() {
+      return this.checkState();
+   }
+
+   @Override
+   public int outlineColor() {
+      return this.computeInt2();
+   }
+
+   @Override
+   public float fillValue() {
+      return this.fill.getValue();
+   }
+
+   @Override
+   public float outlineValue() {
+      return this.outline.getValue();
+   }
+
+   @Override
+   public float highlightValue() {
+      return this.highlight.getValue();
    }
 
    private float computeFloat3(AbstractClientPlayerEntity abstractClientPlayerEntity, boolean local6868_2, float local6868_3, float local6868_4, float local6868_5) {

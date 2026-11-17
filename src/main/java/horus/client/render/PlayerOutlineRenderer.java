@@ -3,6 +3,7 @@ package horus.client.render;
 import horus.client.HorusClient;
 import horus.client.render.WorldProjection;
 import horus.client.cosmetic.BedrockVertexCollector;
+import horus.client.module.render.ChamsModule;
 import horus.client.module.render.TagsModule;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
@@ -159,7 +160,7 @@ public final class PlayerOutlineRenderer {
       int local7385_2 = BedrockVertexCollector.computeInt4();
       this.flag = false;
       this.flag2 = false;
-      if (local7385_2 != 0 && framebuffer != null && framebuffer.getColorAttachmentView() != null && TagsModule.getInstance().checkState()) {
+      if (local7385_2 != 0 && framebuffer != null && framebuffer.getColorAttachmentView() != null && playerParams() != null) {
          if (this.gpuBuffer3 == null || this.gpuBuffer3.isClosed()) {
             this.gpuBuffer3 = RenderSystem.getDevice().createBuffer(() -> "horus_hitbox_mask_params", 136, 80L);
          }
@@ -500,8 +501,18 @@ public final class PlayerOutlineRenderer {
       }
    }
 
+   public static PlayerOutlineParams playerParams() {
+      ChamsModule chams = ChamsModule.getInstance();
+      if (chams.outlineEnabled()) {
+         return chams;
+      }
+
+      TagsModule tags = TagsModule.getInstance();
+      return tags.checkState() ? tags : null;
+   }
+
    public void processData5(Framebuffer framebuffer) {
-      if (TagsModule.getInstance().checkState()) {
+      if (playerParams() != null) {
          Framebuffer framebuffer2 = MinecraftClient.getInstance().getFramebuffer();
          if (framebuffer2 != null && framebuffer2.getColorAttachmentView() != null && framebuffer != null && framebuffer.getColorAttachmentView() != null) {
             if (framebuffer.textureWidth == framebuffer2.textureWidth && framebuffer.textureHeight == framebuffer2.textureHeight) {
@@ -534,12 +545,13 @@ public final class PlayerOutlineRenderer {
 
                      try {
                         ByteBuffer byteBuffer = memoryStack.calloc(48);
-                        byteBuffer.putFloat(0, (TagsModule.getInstance().computeInt2() >> 16 & 0xFF) / 255.0F);
-                        byteBuffer.putFloat(4, (TagsModule.getInstance().computeInt2() >> 8 & 0xFF) / 255.0F);
-                        byteBuffer.putFloat(8, (TagsModule.getInstance().computeInt2() & 0xFF) / 255.0F);
-                        byteBuffer.putFloat(12, TagsModule.getInstance().fill.getValue());
-                        byteBuffer.putFloat(24, TagsModule.getInstance().outline.getValue());
-                        byteBuffer.putFloat(28, TagsModule.getInstance().highlight.getValue());
+                        PlayerOutlineParams playerOutlineParams = playerParams();
+                        byteBuffer.putFloat(0, (playerOutlineParams.outlineColor() >> 16 & 0xFF) / 255.0F);
+                        byteBuffer.putFloat(4, (playerOutlineParams.outlineColor() >> 8 & 0xFF) / 255.0F);
+                        byteBuffer.putFloat(8, (playerOutlineParams.outlineColor() & 0xFF) / 255.0F);
+                        byteBuffer.putFloat(12, playerOutlineParams.fillValue());
+                        byteBuffer.putFloat(24, playerOutlineParams.outlineValue());
+                        byteBuffer.putFloat(28, playerOutlineParams.highlightValue());
                         byteBuffer.putFloat(32, 1.0F / framebuffer2.textureWidth);
                         byteBuffer.putFloat(36, 1.0F / framebuffer2.textureHeight);
                         RenderSystem.getDevice().createCommandEncoder().writeToBuffer(this.gpuBuffer2.slice(0L, 48L), byteBuffer);

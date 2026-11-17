@@ -2,8 +2,8 @@ package horus.mixin;
 
 import horus.client.module.render.BlockOverlayModule;
 import horus.client.module.render.CustomWorldModule;
+import horus.client.render.PlayerOutlineParams;
 import horus.client.render.PlayerOutlineRenderer;
-import horus.client.module.render.TagsModule;
 import horus.client.module.render.TargetEspModule;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
@@ -48,7 +48,7 @@ public abstract class WorldRendererMixin2 {
 
    @ModifyExpressionValue(method = "render(Lnet/minecraft/client/util/memory/ObjectAllocator;Lnet/minecraft/client/render/RenderTickCounter;ZLnet/minecraft/client/render/Camera;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lorg/joml/Matrix4f;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;Lorg/joml/Vector4f;Z)V", at = @At(value = "FIELD", target = "Lnet/minecraft/client/render/state/WorldRenderState;hasOutline:Z"))
    private boolean skipVanillaGlowPostChain(boolean newPlayersMaskFilled) {
-      if (TagsModule.getInstance().checkState()) {
+      if (PlayerOutlineRenderer.playerParams() != null) {
          this.playersMaskFilled = newPlayersMaskFilled;
          return false;
       } else {
@@ -58,12 +58,13 @@ public abstract class WorldRendererMixin2 {
 
    @Inject(method = "drawEntityOutlinesFramebuffer()V", at = @At("HEAD"), cancellable = true)
    private void drawPlayersShaderInsteadOfGlowBlit(CallbackInfo callbackInfo) {
-      if (!TagsModule.getInstance().checkState()) {
+      PlayerOutlineParams params = PlayerOutlineRenderer.playerParams();
+      if (params == null) {
          PlayerOutlineRenderer.getInstance().updateState();
       } else {
          callbackInfo.cancel();
          PlayerOutlineRenderer.getInstance().processData(this.entityOutlineFramebuffer);
-         if (this.playersMaskFilled && TagsModule.getInstance().applyShader.isChecked()) {
+         if (this.playersMaskFilled && params.outlineEnabled()) {
             PlayerOutlineRenderer.getInstance().processData5(this.entityOutlineFramebuffer);
          }
 
