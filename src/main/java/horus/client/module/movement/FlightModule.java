@@ -36,6 +36,7 @@ import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
 import net.minecraft.network.packet.s2c.play.OpenScreenS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerAbilitiesS2CPacket;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.screen.sync.ItemStackHash;
 import net.minecraft.util.Hand;
@@ -55,8 +56,11 @@ public final class FlightModule extends Module {
    public NumberSetting numberSetting;
    public NumberSetting dragonSpeedXZ;
    public NumberSetting dragonSpeedY;
+   public NumberSetting spootySpeed;
    public BooleanSetting autoEnableFly;
    public BooleanSetting instantStop;
+   public BooleanSetting smoothSetting;
+   public BooleanSetting autoFlySetting;
    private final HashMap<BlockPos, Long> map = new HashMap<>();
    private final Stopwatch stopwatch = new Stopwatch();
    private int intVal = -1;
@@ -89,6 +93,57 @@ public final class FlightModule extends Module {
             }
 
             mc.player.setVelocity(vec3d.lengthSquared() > 0.0 ? vec3d.normalize().multiply(this.numberSetting.floatValue()) : Vec3d.ZERO);
+         } else if (this.modeSetting.isSelected("SpootyFly")) {
+            // Обход лимита скорости /fly на SpookyTime: держим серверный полёт,
+            // поднимаем локальную скорость и не даём серверу её сбросить
+            mc.player.fallDistance = 0.0F;
+            float targetFlySpeed = this.spootySpeed.floatValue() * 0.109F;
+            if (mc.player.getAbilities().getFlySpeed() < targetFlySpeed) {
+               mc.player.getAbilities().setFlySpeed(targetFlySpeed);
+            }
+
+            if (mc.player.isGliding()) {
+               // Элитры: полный контроль — летим строго по взгляду
+               mc.player.setVelocity(mc.player.getRotationVector().multiply(this.spootySpeed.floatValue()));
+            } else {
+               mc.player.getAbilities().flying = true;
+               Vec3d vec3d = Vec3d.ZERO;
+               if (mc.options.forwardKey.isPressed()) {
+                  vec3d = vec3d.add(Vec3d.fromPolar(0.0F, mc.player.getYaw()));
+               }
+
+               if (mc.options.backKey.isPressed()) {
+                  vec3d = vec3d.subtract(Vec3d.fromPolar(0.0F, mc.player.getYaw()));
+               }
+
+               if (mc.options.rightKey.isPressed()) {
+                  vec3d = vec3d.add(Vec3d.fromPolar(0.0F, mc.player.getYaw() + 90.0F));
+               }
+
+               if (mc.options.leftKey.isPressed()) {
+                  vec3d = vec3d.subtract(Vec3d.fromPolar(0.0F, mc.player.getYaw() + 90.0F));
+               }
+
+               if (mc.options.jumpKey.isPressed()) {
+                  vec3d = vec3d.add(0.0, 1.0, 0.0);
+               }
+
+               if (mc.options.sneakKey.isPressed()) {
+                  vec3d = vec3d.subtract(0.0, 1.0, 0.0);
+               }
+
+               Vec3d target = vec3d.lengthSquared() > 0.0 ? vec3d.normalize().multiply(this.spootySpeed.floatValue()) : Vec3d.ZERO;
+               if (this.smoothSetting.isChecked() && target.lengthSquared() > 0.0) {
+                  // Плавный разгон: без резких скачков дельты между тиками
+                  Vec3d current = mc.player.getVelocity();
+                  Vec3d diff = target.subtract(current);
+                  if (diff.length() > 0.18) {
+                     target = current.add(diff.normalize().multiply(0.18));
+                  }
+               }
+
+               mc.player.setVelocity(target);
+            }
          } else if (this.modeSetting.isSelected("Dragon Fly")) {
             if (this.autoEnableFly.isChecked() && !mc.player.getAbilities().flying) {
                mc.player.getAbilities().flying = true;
@@ -143,8 +198,7 @@ public final class FlightModule extends Module {
       if (mc.player != null) {
          if (packetEvent.getPacket() instanceof OpenScreenS2CPacket openScreenS2CPacket
             && this.modeSetting.isSelected("FunTime")
-            && openScreenS2CPacket.getName().getString().contains("Блок дамагер")) {
-            mc.execute(
+            && openScreenS2CPacket.getName().getString().contains("Блок дамагер")) {            mc.execute(
                () -> {
                   if (mc.player != null) {
                      mc.player
@@ -160,6 +214,21 @@ public final class FlightModule extends Module {
                }
             );
             packetEvent.cancel();
+         }
+
+         if (packetEvent.getPacket() instanceof PlayerAbilitiesS2CPacket && this.modeSetting.isSelected("SpootyFly")) {
+            // Сервер присылает abilities с низким flySpeed — после его применения вернём свою скорость
+            mc.execute(
+               () -> {
+                  if (mc.player != null && FlightModule.this.isEnabled()) {
+                     mc.player.getAbilities().flying = true;
+                     float targetFlySpeed = FlightModule.this.spootySpeed.floatValue() * 0.109F;
+                     if (mc.player.getAbilities().getFlySpeed() < targetFlySpeed) {
+                        mc.player.getAbilities().setFlySpeed(targetFlySpeed);
+                     }
+                  }
+               }
+            );
          }
       }
    };
@@ -210,7 +279,7 @@ public final class FlightModule extends Module {
    };
 
    private FlightModule() {
-      this.modeSetting = this.addSetting(new ModeSetting("Режим", "Чем держаться в воздухе.", "Обычный", "Обычный", "Dragon Fly"));
+      this.modeSetting = this.addSetting(new ModeSetting("Режим", "Чем держаться в воздухе.", "Обычный", "Обычный", "Dragon Fly", "SpootyFly"));
       this.numberSetting = this.addSetting(
          new NumberSetting("Скорость", "Блоков за тик полёта.")
             .withRange(0.1F, 3.0F)
@@ -231,6 +300,21 @@ public final class FlightModule extends Module {
             .withStep(0.1F)
             .setValue(1.0F)
             .withVisibility(() -> this.modeSetting.isSelected("Dragon Fly"))
+      );
+      this.spootySpeed = this.addSetting(
+         new NumberSetting("Ускорение", "Блоков за тик. Обход лимита скорости /fly на SpookyTime.")
+            .withRange(0.1F, 3.0F)
+            .withStep(0.05F)
+            .setValue(1.0F)
+            .withVisibility(() -> this.modeSetting.isSelected("SpootyFly"))
+      );
+      this.smoothSetting = this.addSetting(
+         new BooleanSetting("Плавный разгон", "Разгоняется без резких скачков скорости, чтобы не тригерить проверки.", true)
+            .withVisibility(() -> this.modeSetting.isSelected("SpootyFly"))
+      );
+      this.autoFlySetting = this.addSetting(
+         new BooleanSetting("Авто /fly", "Автоматически вводит /fly при включении режима.", true)
+            .withVisibility(() -> this.modeSetting.isSelected("SpootyFly"))
       );
       this.autoEnableFly = this.addSetting(
          new BooleanSetting("Авто /fly", "Автоматически включает режим полёта при включении модуля.", true)
@@ -357,6 +441,10 @@ public final class FlightModule extends Module {
       if (mc.player != null && this.modeSetting.isSelected("Dragon Fly") && this.autoEnableFly.isChecked()) {
          mc.player.getAbilities().flying = true;
          mc.player.sendAbilitiesUpdate();
+      }
+
+      if (mc.player != null && this.modeSetting.isSelected("SpootyFly") && this.autoFlySetting.isChecked()) {
+         mc.player.networkHandler.sendChatCommand("fly");
       }
    }
 
