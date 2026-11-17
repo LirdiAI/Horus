@@ -85,7 +85,7 @@ public final class WatermarkHud {
                local3930_7.processData3(null, null, 12.0F);
                break;
             case "user":
-               local3930_7.processData3(null, null, 7.0F);
+               local3930_7.processData3(name, null, 7.0F);
                break;
             case "fps":
                local3930_7.processData3(String.valueOf((int)animator2.floatValue()), "FPS", 7.0F);
