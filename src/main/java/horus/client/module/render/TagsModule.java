@@ -38,7 +38,6 @@ import net.minecraft.text.Style;
 import net.minecraft.text.StyleSpriteSource;
 import net.minecraft.client.gui.DrawContext;
 import java.util.Optional;
-import horus.client.setting.ModeSetting;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import java.awt.Color;
@@ -88,7 +87,6 @@ public final class TagsModule extends Module implements horus.client.render.Play
    public MultiChoiceSetting elements;
    public BooleanSetting showRpPrefixes;
    public BooleanSetting showRankGlyphs;
-   public ModeSetting nameTagStyle;
    public BooleanSetting showPlayerDonationPotions;
    public BooleanSetting applyShader;
    public LegacyNumberSetting outline;
@@ -284,10 +282,6 @@ public final class TagsModule extends Module implements horus.client.render.Play
          new BooleanSetting("Значки донатов", "Отображать значки доната и привилегий (ReallyWorld) над игроками.", false)
       );
       this.showRankGlyphs.withVisibility(() -> this.elements.isIndexSelected(0));
-      this.nameTagStyle = this.addSetting(
-         new ModeSetting("Стиль NameTags", "Вариант отрисовки фона плашки ника.", "Шейдерный", "Шейдерный", "Стекло", "Неон", "Блюр", "Обычный")
-      );
-      this.nameTagStyle.withVisibility(() -> this.elements.isIndexSelected(0));
       this.showPlayerDonationPotions = this.addSetting(
          new BooleanSetting("Показывать донатные зелья игроков", "Донатные зелья, которыми задело игроков и тебя, и сколько осталось.", true)
       );
@@ -1232,77 +1226,34 @@ public final class TagsModule extends Module implements horus.client.render.Play
       int glowColor = local6881_16 ? 0x88FF3333 : (local6881_2 ? 0x8800FF77 : Colors.computeInt7(ThemeColors.intVal, 110));
       int glassTint = local6881_16 ? 0xE62A1416 : (local6881_2 ? 0xE614261B : 0xE60E121A);
       int outlineColor = Colors.computeInt7(accentColor, 175);
-      int backgroundColor = local6881_16 ? intVal4 : (local6881_2 ? intVal2 : Colors.computeInt7(ThemeColors.intVal, 133));
 
-      if (this.nameTagStyle.isSelected("Шейдерный")) {
-         Render2D.processData15(local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, -1);
-         Render2D.processData58(
-            new SoftGlowDrawData(local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, glowColor, 6.0F).withIntensity(0.9F)
-         );
-         Render2D.processData33(
-            local6881_20,
-            local6881_21,
-            local6881_18,
-            local6881_19,
-            4.0F,
-            4.0F,
-            4.0F,
-            4.0F,
-            glassTint,
-            0.95F,
-            2.2F,
-            accentColor,
-            0.35F,
-            false,
-            0.72F,
-            0.015F,
-            1.0F,
-            0.0F
-         );
-         Render2D.processData20(
-            local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, 4.0F, 4.0F, 4.0F, 0.9F, outlineColor
-         );
-      } else if (this.nameTagStyle.isSelected("Стекло")) {
-         Render2D.processData33(
-            local6881_20,
-            local6881_21,
-            local6881_18,
-            local6881_19,
-            4.0F,
-            4.0F,
-            4.0F,
-            4.0F,
-            glassTint,
-            0.96F,
-            2.4F,
-            accentColor,
-            0.28F,
-            false,
-            0.72F,
-            0.015F,
-            1.0F,
-            0.0F
-         );
-         Render2D.processData20(
-            local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, 4.0F, 4.0F, 4.0F, 0.8F, outlineColor
-         );
-      } else if (this.nameTagStyle.isSelected("Неон")) {
-         Render2D.processData58(
-            new SoftGlowDrawData(local6881_20, local6881_21, local6881_18, local6881_19, 3.5F, glowColor, 8.0F).withIntensity(1.2F)
-         );
-         Render2D.processData51(local6881_20, local6881_21, local6881_18, local6881_19, 3.5F, 0xF00A0D14);
-         Render2D.processData20(
-            local6881_20, local6881_21, local6881_18, local6881_19, 3.5F, 3.5F, 3.5F, 3.5F, 1.0F, accentColor
-         );
-      } else if (this.nameTagStyle.isSelected("Блюр")) {
-         Render2D.processData15(local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, -1);
-         Render2D.processData51(local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, 0xCC0E121B);
-         Render2D.processData20(
-            local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, 4.0F, 4.0F, 4.0F, 0.8F, 0x44FFFFFF
-         );
-      } else {
-         Render2D.processData51(local6881_20, local6881_21, local6881_18, local6881_19, 3.0F, backgroundColor);
-      }
+      Render2D.processData15(local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, -1);
+      Render2D.processData58(
+         new SoftGlowDrawData(local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, glowColor, 6.0F).withIntensity(0.9F)
+      );
+      Render2D.processData33(
+         local6881_20,
+         local6881_21,
+         local6881_18,
+         local6881_19,
+         4.0F,
+         4.0F,
+         4.0F,
+         4.0F,
+         glassTint,
+         0.95F,
+         2.2F,
+         accentColor,
+         0.35F,
+         false,
+         0.72F,
+         0.015F,
+         1.0F,
+         0.0F
+      );
+      Render2D.processData20(
+         local6881_20, local6881_21, local6881_18, local6881_19, 4.0F, 4.0F, 4.0F, 4.0F, 0.9F, outlineColor
+      );
       float local6881_23 = local6881_20 + 2.0F;
 
       if (local6881_16) {
