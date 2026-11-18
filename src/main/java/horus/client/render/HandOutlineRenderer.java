@@ -1,7 +1,6 @@
 package horus.client.render;
 
 import horus.client.HorusClient;
-import horus.client.module.render.ItemOutlineModule;
 import horus.client.module.render.SwordAnimationsModule;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
@@ -29,11 +28,6 @@ import org.lwjgl.system.MemoryStack;
 
 public final class HandOutlineRenderer {
    private static HandOutlineParams outlineParams() {
-      ItemOutlineModule itemOutline = ItemOutlineModule.getInstance();
-      if (itemOutline.isEnabled()) {
-         return itemOutline;
-      }
-
       SwordAnimationsModule swordAnimations = SwordAnimationsModule.getInstance();
       return swordAnimations.checkState4() ? swordAnimations : null;
    }
