@@ -39,6 +39,7 @@ public final class SwordAnimationsModule extends Module implements horus.client.
    public LegacyNumberSetting highlight;
    public BooleanSetting customColor;
    public ColorSetting colorSetting;
+   public BooleanSetting animateGlow;
 
    public int computeInt() {
       int local2653_1 = (int)this.legacyNumberSetting5.getValue();
@@ -180,12 +181,23 @@ public final class SwordAnimationsModule extends Module implements horus.client.
 
    @Override
    public float outlineValue() {
+      if (this.animateGlow != null && this.animateGlow.isChecked()) {
+         return this.outline.getValue() * (0.85F + 0.15F * (float) Math.sin(System.currentTimeMillis() / 1000.0 * 1.7));
+      }
+
       return this.outline.getValue();
    }
 
    @Override
    public float highlightValue() {
-      return this.highlight.getValue();
+      float base = this.highlight.getValue();
+      if (this.animateGlow != null && this.animateGlow.isChecked()) {
+         // Пульс, как в визуалах: медленное «дыхание» + быстрая рябь, как у пламени
+         double t = System.currentTimeMillis() / 1000.0;
+         return base * (0.78F + 0.34F * (float) (0.5 + 0.5 * Math.sin(t * 1.15)) + 0.12F * (float) Math.sin(t * 3.1 + 0.5));
+      }
+
+      return base;
    }
 
    public boolean matchesCriteria(Arm arm) {
@@ -208,6 +220,7 @@ public final class SwordAnimationsModule extends Module implements horus.client.
       this.highlight = this.addSetting(new LegacyNumberSetting("Подсветка", "Сила свечения вокруг предмета.", 0.55, 0.0, 3.0, 0.05));
       this.customColor = this.addSetting(new BooleanSetting("Кастомный цвет", "Свой цвет вместо акцента темы.", false));
       this.colorSetting = this.addSetting(new ColorSetting("Цвет", "Цвет обводки и тени."));
+      this.animateGlow = this.addSetting(new BooleanSetting("Анимация свечения", "Подсветка дышит и пульсирует, как в визуалах с HolyWorld.", false));
       this.legacyNumberSetting3.withVisibility(() -> !this.modeSetting.isSelected("Мод 7") && !this.checkState3());
       this.legacyNumberSetting5.withVisibility(() -> !this.checkState3());
       this.legacyNumberSetting4.withVisibility(() -> this.modeSetting.isSelected("Мод 7"));
@@ -216,5 +229,6 @@ public final class SwordAnimationsModule extends Module implements horus.client.
       this.highlight.withVisibility(() -> this.applyShader.isChecked());
       this.customColor.withVisibility(() -> this.applyShader.isChecked());
       this.colorSetting.withVisibility(() -> this.applyShader.isChecked() && this.customColor.isChecked());
+      this.animateGlow.withVisibility(() -> this.applyShader.isChecked());
    }
 }
