@@ -33,3 +33,4 @@ node_modules/
 *.log
 scripts/patch_*.py
 scripts/fix_*.py
+run2/

@@ -72,6 +72,7 @@ public final class PartyModule extends Module {
    private final AtomicBoolean atomicBoolean = new AtomicBoolean();
    private final HashMap<String, Vec3d> map = new HashMap<>();
    private final HashSet<String> set2 = new HashSet<>();
+   private final HashSet<String> set3 = new HashSet<>();
    private volatile PartyModule.DataRecord2 nested0462;
    private String strVal2;
    private long timeMillis;
@@ -219,6 +220,7 @@ public final class PartyModule extends Module {
       this.nested0462 = null;
       this.map.clear();
       this.set2.clear();
+      this.set3.clear();
    }
 
    public void updateState2() {
@@ -367,13 +369,15 @@ public final class PartyModule extends Module {
          String local4684_6 = mc.player == null ? "" : mc.player.getGameProfile().name();
 
          for (PartyModule.DataRecord local4684_8 : local4684_3) {
-            if (local4684_2.members().stream().noneMatch(local4687_1 -> local4687_1.nick().equals(local4684_8.nick()))) {
+            if (local4684_2.members().stream().noneMatch(local4687_1 -> local4687_1.nick().equals(local4684_8.nick()))
+               && this.set3.add(local4684_8.nick())) {
                ClientChat.processData8("&a+ &7" + local4684_8.nick() + "&r зашёл в пати.");
             }
          }
 
          for (PartyModule.DataRecord local4684_8 : local4684_2.members()) {
-            if (local4684_3.stream().noneMatch(local4695_1 -> local4695_1.nick().equals(local4684_8.nick()))) {
+            if (local4684_3.stream().noneMatch(local4695_1 -> local4695_1.nick().equals(local4684_8.nick()))
+               && this.set3.remove(local4684_8.nick())) {
                ClientChat.processData8("&c- &7" + local4684_8.nick() + "&r вышел из пати.");
             }
          }
@@ -393,6 +397,10 @@ public final class PartyModule extends Module {
       } else {
          for (PartyModule.DataRecord3 local4684_7 : local4684_4) {
             this.set2.add(local4684_7.id());
+         }
+
+         for (PartyModule.DataRecord local4684_7 : local4684_3) {
+            this.set3.add(local4684_7.nick());
          }
       }
    }
@@ -578,7 +586,7 @@ public final class PartyModule extends Module {
             meta.addProperty("owner", nick);
             meta.addProperty("locked", false);
             this.http("POST", "/party_meta", meta.toString(), "return=minimal");
-            this.http("POST", "/party_members", this.memberRow(code).toString(), "resolution=merge-duplicates");
+            this.http("POST", "/party_members", this.memberRow(code).toString(), "resolution=merge-duplicates,on_conflict=code,nick");
             return this.fetchState(code);
          } catch (IllegalStateException exception) {
             if (!String.valueOf(exception.getMessage()).contains("409")) {
@@ -618,7 +626,7 @@ public final class PartyModule extends Module {
          return error;
       }
 
-      this.http("POST", "/party_members", this.memberRow(code).toString(), "resolution=merge-duplicates");
+      this.http("POST", "/party_members", this.memberRow(code).toString(), "resolution=merge-duplicates,on_conflict=code,nick");
       return this.fetchState(code);
    }
 
