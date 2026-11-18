@@ -7,6 +7,7 @@ import horus.client.module.ModuleCategory;
 import horus.client.module.ModuleInfo;
 import horus.client.setting.BooleanSetting;
 import horus.client.setting.LegacyNumberSetting;
+import horus.client.setting.ModeSetting;
 import horus.client.util.ClientChat;
 
 import net.minecraft.entity.Entity;
@@ -19,14 +20,16 @@ import net.minecraft.util.math.MathHelper;
 import java.util.function.Predicate;
 
 @ModuleInfo(
-   name = "ShulkerFly",
-   description = "Полёт на шалкере в лодке: авто-посадка в лодку с шалкером и контроль левитации. Шалкер стреляет в тебя — ты паришь в лодке как на флае.",
+   name = "HighJump",
+   description = "Высокий полёт/прыжок. Режим «Шалкер»: авто-посадка в лодку с шалкером, который держит тебя в воздухе левитацией.",
    category = ModuleCategory.MOVEMENT
 )
-public final class ShulkerFlyModule extends Module {
-   private static ShulkerFlyModule shulkerFlyModule;
+public final class HighJumpModule extends Module {
+   private static HighJumpModule highJumpModule;
+   public ModeSetting modeSetting;
    public BooleanSetting autoBoardSetting;
    public LegacyNumberSetting searchRangeSetting;
+   public LegacyNumberSetting jumpBoostSetting;
 
    private AbstractBoatEntity boat;
    private boolean flag;
@@ -43,6 +46,25 @@ public final class ShulkerFlyModule extends Module {
          return;
       }
 
+      if (this.modeSetting.isSelected("Прыжок")) {
+         this.processJumpMode();
+         return;
+      }
+
+      this.processShulkerMode();
+   };
+
+   // Режим «Прыжок»: усиленный прыжок
+   private void processJumpMode() {
+      if (mc.player.isOnGround() && mc.options.jumpKey.isPressed()) {
+         double boost = this.jumpBoostSetting.getValue();
+         mc.player.setVelocity(mc.player.getVelocity().add(0.0, boost * 0.35, 0.0));
+         mc.player.fallDistance = 0.0F;
+      }
+   }
+
+   // Режим «Шалкер»: лодка с шалкером + левитация
+   private void processShulkerMode() {
       this.tickCounter++;
 
       boolean riding = mc.player.getVehicle() instanceof AbstractBoatEntity;
@@ -51,9 +73,7 @@ public final class ShulkerFlyModule extends Module {
       if (riding) {
          // Находимся в лодке — следим за левитацией
          if (levitating) {
-            int secondsLeft = MathHelper.ceil(
-               mc.player.getStatusEffect(StatusEffects.LEVITATION).getDuration() / 20.0F
-            );
+            int secondsLeft = MathHelper.ceil(mc.player.getStatusEffect(StatusEffects.LEVITATION).getDuration() / 20.0F);
 
             if (secondsLeft <= 3 && !this.flag2) {
                this.flag2 = true;
@@ -84,7 +104,7 @@ public final class ShulkerFlyModule extends Module {
       if (this.boat == null) {
          if (!this.flag) {
             this.flag = true;
-            ClientChat.processData8("&7ShulkerFly: лодки с шалкером рядом нет. Нужна лодка, в которой сидит живой шалкер.");
+            ClientChat.processData8("&7HighJump: лодки с шалкером рядом нет. Нужна лодка, в которой сидит живой шалкер.");
          }
 
          return;
@@ -97,7 +117,7 @@ public final class ShulkerFlyModule extends Module {
          mc.interactionManager.interactEntity(mc.player, this.boat, Hand.MAIN_HAND);
          ClientChat.processData8("&aСажусь в лодку с шалкером (&7" + String.format("%.1f", distance) + "м&a).");
       }
-   };
+   }
 
    private AbstractBoatEntity findShulkerBoat() {
       double range = this.searchRangeSetting.getValue();
@@ -121,16 +141,24 @@ public final class ShulkerFlyModule extends Module {
       return best;
    }
 
-   public static ShulkerFlyModule getInstance() {
-      if (shulkerFlyModule == null) {
-         shulkerFlyModule = new ShulkerFlyModule();
+   public static HighJumpModule getInstance() {
+      if (highJumpModule == null) {
+         highJumpModule = new HighJumpModule();
       }
 
-      return shulkerFlyModule;
+      return highJumpModule;
    }
 
-   private ShulkerFlyModule() {
+   private HighJumpModule() {
+      this.modeSetting = this.addSetting(
+         new ModeSetting("Режим", "Вариант высокого полёта.", "Шалкер", "Шалкер", "Прыжок")
+      );
       this.autoBoardSetting = this.addSetting(new BooleanSetting("Автопосадка", "Сам садиться в найденную лодку с шалкером.", true));
       this.searchRangeSetting = this.addSetting(new LegacyNumberSetting("Радиус поиска", "На каком расстоянии искать лодку с шалкером.", 32.0, 8.0, 64.0, 8.0));
+      this.jumpBoostSetting = this.addSetting(new LegacyNumberSetting("Сила прыжка", "Насколько сильнее обычного прыжок в режиме «Прыжок».", 2.0, 1.0, 5.0, 0.25));
+
+      this.autoBoardSetting.withVisibility(() -> this.modeSetting.isSelected("Шалкер"));
+      this.searchRangeSetting.withVisibility(() -> this.modeSetting.isSelected("Шалкер"));
+      this.jumpBoostSetting.withVisibility(() -> this.modeSetting.isSelected("Прыжок"));
    }
 }
