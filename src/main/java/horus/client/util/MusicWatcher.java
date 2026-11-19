@@ -37,35 +37,65 @@ public final class MusicWatcher {
       Add-Type -AssemblyName System.Runtime.WindowsRuntime
       $null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]
       $asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+      $asTaskAction = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncAction' })[0]
       function Await($WinRtTask, $ResultType) {
          $asTask = $asTaskGeneric.MakeGenericMethod($ResultType)
          $netTask = $asTask.Invoke($null, @($WinRtTask))
          $netTask.Wait(-1) | Out-Null
          $netTask.Result
       }
+      function AwaitAction($WinRtAction) {
+         $netTask = $asTaskAction.Invoke($null, @($WinRtAction))
+         $netTask.Wait(-1) | Out-Null
+      }
       $manager = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+      $cmdFile = Join-Path $env:TEMP 'horus_media_cmd.txt'
       $lastKey = ''
+      $lastStatus = ''
+      $lastPos = -1
       while ($true) {
-         $session = $manager.GetSessions() | Where-Object { $_.GetPlaybackInfo().PlaybackStatus -eq 'Playing' } | Select-Object -First 1
-         if ($session -ne $null) {
-            $props = Await $session.TryGetMediaPropertiesAsync() ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
-            $key = $props.Title + '|' + $props.Artist
-            if ($key -ne $lastKey) {
-               Write-Output ('TITLE=' + $props.Title)
-               Write-Output ('ARTIST=' + $props.Artist)
-               Write-Output 'EOL'
-               $lastKey = $key
-            }
-         } else {
-            if ($lastKey -ne '') {
-               Write-Output 'NONE'
-               Write-Output 'EOL'
+         try {
+            $session = $manager.GetSessions() | Select-Object -First 1
+            if ($session -ne $null) {
+               $status = [string]$session.GetPlaybackInfo().PlaybackStatus
+               if ($status -ne $lastStatus) {
+                  Write-Output ('STATUS=' + $status)
+                  $lastStatus = $status
+               }
+               $props = Await $session.TryGetMediaPropertiesAsync() ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
+               $key = $props.Title + '|' + $props.Artist
+               if ($key -ne $lastKey) {
+                  Write-Output ('TITLE=' + $props.Title)
+                  Write-Output ('ARTIST=' + $props.Artist)
+                  Write-Output 'EOL'
+                  $lastKey = $key
+               }
+               $timeline = $session.GetTimelineProperties()
+               $pos = [math]::Round($timeline.Position.TotalSeconds, 1)
+               if ($pos -ne $lastPos) {
+                  Write-Output ('POS=' + $pos + ' END=' + [math]::Round($timeline.EndTime.TotalSeconds, 1))
+                  $lastPos = $pos
+               }
+               if (Test-Path $cmdFile) {
+                  $cmd = (Get-Content $cmdFile -Raw).Trim().ToUpper()
+                  Remove-Item $cmdFile -Force -ErrorAction SilentlyContinue
+                  if ($cmd -eq 'PLAY') { AwaitAction ($session.TryPlayAsync()) }
+                  elseif ($cmd -eq 'PAUSE') { AwaitAction ($session.TryPauseAsync()) }
+                  elseif ($cmd -eq 'NEXT') { AwaitAction ($session.TrySkipNextAsync()) }
+                  elseif ($cmd -eq 'PREV') { AwaitAction ($session.TrySkipPreviousAsync()) }
+               }
+            } else {
+               if ($lastStatus -ne '') {
+                  Write-Output 'STATUS=None'
+                  $lastStatus = ''
+               }
                $lastKey = ''
             }
+         } catch {
          }
-         Start-Sleep -Milliseconds 800
+         Start-Sleep -Milliseconds 700
       }
-      """;
+      """;;
 
    private static final AtomicBoolean started = new AtomicBoolean();
    private static final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6L)).build();
@@ -82,6 +112,29 @@ public final class MusicWatcher {
    private static volatile String coverKey = "";
    private static volatile byte[] pendingCover;
    private static volatile boolean coverPending;
+   private static volatile float positionSeconds;
+   private static volatile float durationSeconds;
+   private static volatile long positionMillis;
+
+   /** Отправляет команду системному плееру: PLAY / PAUSE / NEXT / PREV. */
+   public static void sendCommand(String command) {
+      try {
+         Path commandPath = Path.of(System.getProperty("java.io.tmpdir"), "horus_media_cmd.txt");
+         Files.writeString(commandPath, command + "\n", StandardCharsets.UTF_8);
+      } catch (IOException ignored) {
+      }
+   }
+
+   /** Текущая позиция трека в секундах (с локальной интерполяцией между опросами). */
+   public static float getPlayPosition() {
+      float interpolated = positionSeconds + (playing ? (System.currentTimeMillis() - positionMillis) / 1000.0F : 0.0F);
+      float duration = durationSeconds;
+      return duration > 1.0F ? Math.min(interpolated, duration) : interpolated;
+   }
+
+   public static float getDuration() {
+      return durationSeconds;
+   }
 
    private MusicWatcher() {
    }
@@ -139,6 +192,22 @@ public final class MusicWatcher {
                } else if (line.startsWith("ARTIST=")) {
                   artistBuilder.setLength(0);
                   artistBuilder.append(line.substring(7));
+               } else if (line.startsWith("STATUS=")) {
+                  String status = line.substring(7).trim();
+                  playing = status.equals("Playing");
+               } else if (line.startsWith("POS=")) {
+                  int spaceIndex = line.indexOf(' ', 4);
+                  if (spaceIndex > 4) {
+                     try {
+                        positionSeconds = Float.parseFloat(line.substring(4, spaceIndex));
+                        String end = line.substring(spaceIndex + 1);
+                        if (end.startsWith("END=")) {
+                           durationSeconds = Float.parseFloat(end.substring(4));
+                        }
+                     } catch (NumberFormatException ignored) {
+                     }
+                     positionMillis = System.currentTimeMillis();
+                  }
                } else if (line.equals("EOL")) {
                   listening = false;
                   applyTrack(titleBuilder.toString(), artistBuilder.toString());
@@ -161,7 +230,8 @@ public final class MusicWatcher {
       String key = (newTitle.trim() + "|" + newArtist.trim()).toLowerCase(java.util.Locale.ROOT);
       title = newTitle.trim();
       artist = newArtist.trim();
-      playing = true;
+      positionSeconds = 0.0F;
+      positionMillis = System.currentTimeMillis();
 
       if (!key.equals(coverKey)) {
          coverKey = key;

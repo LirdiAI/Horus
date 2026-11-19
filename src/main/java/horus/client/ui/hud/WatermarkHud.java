@@ -52,7 +52,13 @@ public final class WatermarkHud {
    private static WatermarkHud.SubContext nested0435;
    private static float floatVal5;
    private static final Animation islandAnimation = new Animation();
+   private static final Animation panelAnimation = new Animation();
    private static boolean rightMouseFlag;
+   private static boolean leftMouseFlag;
+   private static float panelRectX;
+   private static float panelRectY;
+   private static float panelRectW;
+   private static float panelRectH;
 
    public static boolean matchesCriteria(double local3929_0, double local3929_2, int local3929_4) {
       // Суб-элементы ватермарки зафиксированы: клик передается в HudManager для перемещения всей ватермарки
@@ -286,6 +292,26 @@ public final class WatermarkHud {
 
       rightMouseFlag = rightMouse;
 
+      float panelWidth = Math.max(width, 170.0F);
+      float panelX = Math.max(5.0F, Math.min(x + width / 2.0F - panelWidth / 2.0F, HudManager.computeFloat2() - panelWidth - 5.0F));
+      float panelY = y + 15.0F + 2.0F;
+      float panelHeight = 52.0F;
+
+      boolean hover = mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height
+         || panelAnimation.floatValue() > 0.05F
+            && mouseX >= panelRectX && mouseX <= panelRectX + panelRectW && mouseY >= panelRectY && mouseY <= panelRectY + panelRectH;
+      panelAnimation.update();
+      panelAnimation.animateTo(hover ? 1.0 : 0.0, 0.3, Easings.EASE_OUT_EXPO);
+      float expanded = panelAnimation.floatValue();
+
+      if (expanded > 0.01F) {
+         renderIslandPanel(minecraftClient, panelX, panelY, panelWidth, panelHeight, mouseX, mouseY, alpha * expanded);
+         panelRectX = panelX;
+         panelRectY = panelY;
+         panelRectW = panelWidth;
+         panelRectH = panelHeight;
+      }
+
       float textX = x + 3.0F + coverSize + 3.0F;
       float areaWidth = width - (textX - x) - 4.0F;
 
@@ -314,6 +340,108 @@ public final class WatermarkHud {
          String performers = trimToWidth(MusicWatcher.getArtist(), areaWidth - titleDrawn - 2.0F, 6.0F);
          FontText.processData3(FontFace.SEMI, performers, textX + titleDrawn + 2.0F, cy - 3.5F, 6.0F, UiTheme.computeInt(0xFF9AA0A6, alpha));
       }
+   }
+
+   private static void renderIslandPanel(MinecraftClient minecraftClient, float px, float py, float pw, float ph, float mouseX, float mouseY, float alpha) {
+      if (alpha < 0.01F) {
+         return;
+      }
+
+      String artist = MusicWatcher.getArtist();
+      String track = MusicWatcher.getTitle();
+
+      ShapeDrawing.processData5(px, py, pw, ph, 0.0F, 0xEE121319, alpha, CornerRadii.uniform(10.0F));
+
+      // Исполнители сверху (серым)
+      String artistLine = trimToWidth(artist, pw - 16.0F, 5.5F);
+      FontText.processData3(FontFace.SEMI, artistLine, px + pw / 2.0F - FontText.computeFloat(FontFace.SEMI, artistLine, 5.5F) / 2.0F, py + 7.0F, 5.5F, UiTheme.computeInt(0xFF9AA0A6, alpha));
+
+      // Название крупно (белым)
+      String titleLine = trimToWidth(track, pw - 16.0F, 8.0F);
+      FontText.processData3(FontFace.SEMI, titleLine, px + pw / 2.0F - FontText.computeFloat(FontFace.SEMI, titleLine, 8.0F) / 2.0F, py + 17.0F, 8.0F, UiTheme.computeInt(-1, alpha));
+
+      float rowY = py + 39.0F;
+
+      // Крупная обложка слева
+      float coverSize = 24.0F;
+      float coverX = px + 9.0F;
+      float coverY = rowY - coverSize / 2.0F;
+      Identifier coverId = MusicWatcher.getCover();
+      if (coverId != null) {
+         Render2D.processData89(coverId.toString(), coverX, coverY, coverSize, coverSize, 5.0F, UiTheme.computeInt(-1, alpha));
+      } else {
+         Render2D.processData89("assets/horus/textures/gui/mainmenu/icons/logo.png", coverX, coverY, coverSize, coverSize, 5.0F, UiTheme.computeInt(-1, alpha));
+      }
+
+      // Кнопки справа: ◀◀ / пауза / ▶▶
+      float nextX = px + pw - 9.0F;
+      float playX = nextX - 20.0F;
+      float prevX = playX - 19.0F;
+      float nextSize = 13.0F;
+      float playSize = 17.0F;
+      float prevSize = 13.0F;
+      int darkCircle = UiTheme.computeInt(0xFF26272E, alpha);
+      int whiteCircle = UiTheme.computeInt(-1, alpha);
+      int darkGlyph = UiTheme.computeInt(0xFF17181D, alpha);
+      int lightGlyph = UiTheme.computeInt(-1, alpha);
+
+      ShapeDrawing.processData5(nextX - nextSize / 2.0F, rowY - nextSize / 2.0F, nextSize, nextSize, 0.0F, darkCircle, alpha, CornerRadii.uniform(nextSize / 2.0F));
+      FontText.processData3(FontFace.SEMI, "▶", nextX - FontText.computeFloat(FontFace.SEMI, "▶", 5.0F) / 2.0F, rowY - 2.5F, 5.0F, lightGlyph);
+
+      ShapeDrawing.processData5(prevX - prevSize / 2.0F, rowY - prevSize / 2.0F, prevSize, prevSize, 0.0F, darkCircle, alpha, CornerRadii.uniform(prevSize / 2.0F));
+      FontText.processData3(FontFace.SEMI, "◀", prevX - FontText.computeFloat(FontFace.SEMI, "◀", 5.0F) / 2.0F, rowY - 2.5F, 5.0F, lightGlyph);
+
+      ShapeDrawing.processData5(playX - playSize / 2.0F, rowY - playSize / 2.0F, playSize, playSize, 0.0F, whiteCircle, alpha, CornerRadii.uniform(playSize / 2.0F));
+      if (MusicWatcher.isPlaying()) {
+         float barW = 1.6F;
+         float barH = 6.0F;
+         ShapeDrawing.processData5(playX - 2.2F - barW / 2.0F, rowY - barH / 2.0F, barW, barH, 0.0F, darkGlyph, alpha, CornerRadii.uniform(0.6F));
+         ShapeDrawing.processData5(playX + 2.2F - barW / 2.0F, rowY - barH / 2.0F, barW, barH, 0.0F, darkGlyph, alpha, CornerRadii.uniform(0.6F));
+      } else {
+         FontText.processData3(FontFace.SEMI, "▶", playX - FontText.computeFloat(FontFace.SEMI, "▶", 5.5F) / 2.0F, rowY - 2.75F, 5.5F, darkGlyph);
+      }
+
+      // Полоса прогресса: позиция — бар — остаток
+      float posSeconds = MusicWatcher.getPlayPosition();
+      float endSeconds = Math.max(1.0F, MusicWatcher.getDuration());
+      String posText = formatTime(posSeconds);
+      String endText = "-" + formatTime(endSeconds);
+      float posTextX = px + 9.0F + coverSize + 7.0F;
+      float endTextRight = prevX - prevSize / 2.0F - 6.0F;
+      float endTextX = endTextRight - FontText.computeFloat(FontFace.SEMI, endText, 5.0F);
+      float barStart = posTextX + FontText.computeFloat(FontFace.SEMI, posText, 5.0F) + 4.0F;
+      float barEnd = endTextX - 4.0F;
+      float barWidth = Math.max(8.0F, barEnd - barStart);
+
+      FontText.processData3(FontFace.SEMI, posText, posTextX, rowY - 2.5F, 5.0F, UiTheme.computeInt(-1, alpha));
+      FontText.processData3(FontFace.SEMI, endText, endTextX, rowY - 2.5F, 5.0F, UiTheme.computeInt(0xFF9AA0A6, alpha));
+
+      float progress = Math.max(0.0F, Math.min(1.0F, posSeconds / endSeconds));
+      ShapeDrawing.processData5(barStart, rowY - 1.25F, barWidth, 2.5F, 0.0F, UiTheme.computeInt(0xFF3A3B44, alpha), alpha, CornerRadii.uniform(1.0F));
+      if (barWidth * progress > 0.5F) {
+         ShapeDrawing.processData5(barStart, rowY - 1.25F, barWidth * progress, 2.5F, 0.0F, UiTheme.computeInt(0xFFB08CFF, alpha), alpha, CornerRadii.uniform(1.0F));
+      }
+
+      // Клики по кнопкам
+      boolean leftMouse = GLFW.glfwGetMouseButton(minecraftClient.getWindow().getHandle(), 0) == 1;
+      if (leftMouse && !leftMouseFlag && alpha > 0.6F) {
+         if (mouseY >= rowY - 9.0F && mouseY <= rowY + 9.0F) {
+            if (mouseX >= prevX - prevSize / 2.0F && mouseX <= prevX + prevSize / 2.0F) {
+               MusicWatcher.sendCommand("PREV");
+            } else if (mouseX >= playX - playSize / 2.0F && mouseX <= playX + playSize / 2.0F) {
+               MusicWatcher.sendCommand(MusicWatcher.isPlaying() ? "PAUSE" : "PLAY");
+            } else if (mouseX >= nextX - nextSize / 2.0F && mouseX <= nextX + nextSize / 2.0F) {
+               MusicWatcher.sendCommand("NEXT");
+            }
+         }
+      }
+
+      leftMouseFlag = leftMouse;
+   }
+
+   private static String formatTime(float seconds) {
+      int total = Math.max(0, Math.round(seconds));
+      return total / 60 + ":" + String.format(java.util.Locale.US, "%02d", total % 60);
    }
 
    private static String trimToWidth(String text, float maxWidth, float fontSize) {
