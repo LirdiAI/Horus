@@ -4,6 +4,7 @@ import horus.client.render.FontText;
 import horus.client.util.GuiScale;
 import horus.client.util.MusicWatcher;
 import horus.client.render.ScissorStack;
+import horus.client.module.render.DynamicIslandModule;
 import horus.client.render.ThemeColors;
 import horus.client.ui.UiTheme;
 import horus.client.render.CornerRadii;
@@ -51,7 +52,6 @@ public final class WatermarkHud {
    private static WatermarkHud.SubContext nested0435;
    private static float floatVal5;
    private static final Animation islandAnimation = new Animation();
-   private static boolean textTrack;
    private static boolean rightMouseFlag;
 
    public static boolean matchesCriteria(double local3929_0, double local3929_2, int local3929_4) {
@@ -129,7 +129,7 @@ public final class WatermarkHud {
       }
 
       MusicWatcher.start();
-      boolean islandMode = MusicWatcher.isPlaying();
+      boolean islandMode = MusicWatcher.isPlaying() && DynamicIslandModule.getInstance().isEnabled();
 
       float local3930_6 = 0.0F;
 
@@ -281,7 +281,7 @@ public final class WatermarkHud {
       float mouseY = (float)(minecraftClient.mouse.getScaledY(minecraftClient.getWindow()) * scale);
       boolean rightMouse = GLFW.glfwGetMouseButton(minecraftClient.getWindow().getHandle(), 1) == 1;
       if (rightMouse && !rightMouseFlag && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
-         textTrack = !textTrack;
+         DynamicIslandModule.getInstance().textTrackSetting.toggleValue();
       }
 
       rightMouseFlag = rightMouse;
@@ -289,7 +289,7 @@ public final class WatermarkHud {
       float textX = x + 3.0F + coverSize + 3.0F;
       float areaWidth = width - (textX - x) - 4.0F;
 
-      if (textTrack) {
+      if (DynamicIslandModule.getInstance().textTrackSetting.isChecked()) {
          // Плавная бегущая дорожка: название — исполнители
          String full = MusicWatcher.getTitle() + "  —  " + MusicWatcher.getArtist();
          float textWidth = FontText.computeFloat(FontFace.SEMI, full, 6.0F);

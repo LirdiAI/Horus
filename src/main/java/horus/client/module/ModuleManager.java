@@ -53,6 +53,7 @@ import horus.client.module.player.ClickActionModule;
 import horus.client.module.player.InvManagerModule;
 import horus.client.module.player.TapeMouseModule;
 import horus.client.module.render.CrosshairModule;
+import horus.client.module.render.DynamicIslandModule;
 import horus.client.module.movement.HighJumpModule;
 import horus.client.module.render.InvTargetModule;
 import horus.client.module.render.CustomWorldModule;
@@ -254,6 +255,7 @@ public final class ModuleManager {
          registerModule(TorusModule.getInstance());
          TotemGhostModule.getInstance();
          registerModule(CrosshairModule.getInstance());
+         registerModule(DynamicIslandModule.getInstance());
          registerModule(HighJumpModule.getInstance());
          registerModule(InvTargetModule.getInstance());
          registerModule(ArrowsModule.getInstance());
