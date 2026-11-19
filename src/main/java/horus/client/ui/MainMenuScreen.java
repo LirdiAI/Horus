@@ -36,7 +36,6 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -470,7 +469,7 @@ public class MainMenuScreen extends Screen {
               mx,
               my,
               interactive,
-              () -> this.modals.open(MainMenuModals.Type.SINGLEPLAYER)
+              () -> MinecraftClient.getInstance().setScreen(new SelectWorldScreen(this))
       );
 
       // 2. Multiplayer (with smooth exit transition)
@@ -624,7 +623,7 @@ public class MainMenuScreen extends Screen {
       float radius = 8.0F * scale;
       float halfW = (btnW - gap) / 2.0F;
 
-      this.drawPillButton(btnX, y, btnW, btnH, radius, scale, Lang.tr("Одиночная игра", "Singleplayer"), false, mx, my, interactive, () -> this.modals.open(MainMenuModals.Type.SINGLEPLAYER));
+      this.drawPillButton(btnX, y, btnW, btnH, radius, scale, Lang.tr("Одиночная игра", "Singleplayer"), false, mx, my, interactive, () -> MinecraftClient.getInstance().setScreen(new SelectWorldScreen(this)));
       y += btnH + gap;
       this.drawPillButton(btnX, y, btnW, btnH, radius, scale, Lang.tr("Сетевая игра", "Multiplayer"), false, mx, my, interactive, () -> MinecraftClient.getInstance().setScreen(new MultiplayerScreen(this)));
       y += btnH + gap;
@@ -654,7 +653,7 @@ public class MainMenuScreen extends Screen {
       float x0 = centerX - cardW - gap / 2.0F;
       float y0 = centerY - (cardH * 3.0F + gap * 2.0F) / 2.0F;
 
-      this.drawCardButton(x0, y0, cardW, cardH, radius, scale, Lang.tr("Одиночная игра", "Singleplayer"), Lang.tr("Локальные миры", "Local worlds"), 0, 0, mx, my, interactive, () -> this.modals.open(MainMenuModals.Type.SINGLEPLAYER));
+      this.drawCardButton(x0, y0, cardW, cardH, radius, scale, Lang.tr("Одиночная игра", "Singleplayer"), Lang.tr("Локальные миры", "Local worlds"), 0, 0, mx, my, interactive, () -> MinecraftClient.getInstance().setScreen(new SelectWorldScreen(this)));
       this.drawCardButton(x0 + cardW + gap, y0, cardW, cardH, radius, scale, Lang.tr("Сетевая игра", "Multiplayer"), Lang.tr("Серверы", "Servers"), 0, 0, mx, my, interactive, () -> MinecraftClient.getInstance().setScreen(new MultiplayerScreen(this)));
       y0 += cardH + gap;
 
