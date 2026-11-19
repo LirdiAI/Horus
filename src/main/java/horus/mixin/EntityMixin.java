@@ -10,10 +10,13 @@ import horus.client.module.render.FreeCameraModule;
 import horus.client.MinecraftAccess;
 import horus.client.event.MouseLookEvent;
 import horus.client.module.player.NoPushModule;
+import horus.client.module.movement.NoWebModule;
 import horus.client.RotationManager;
 import horus.client.module.render.SeeInvisibleModule;
 import ru.dreamix.fabricloader.VMBridge;
 
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
@@ -112,6 +115,14 @@ public abstract class EntityMixin implements MinecraftAccess {
             || (local8234_2 == FluidTags.WATER ? !NoPushModule.getInstance().matchesCriteria("Вода") : !NoPushModule.getInstance().matchesCriteria("Лава"))
          ? entity.isPushedByFluids()
          : false;
+   }
+
+   /** NoWeb: паутина не замедляет — slowMovement для паутины отменяется. */
+   @Inject(method = "slowMovement(Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/Vec3d;)V", at = @At("HEAD"), cancellable = true)
+   private void skipWebSlowdown(BlockState blockState, Vec3d multiplier, CallbackInfo callbackInfo) {
+      if ((Object)this == mc.player && NoWebModule.getInstance().isEnabled() && blockState.isOf(Blocks.COBWEB)) {
+         callbackInfo.cancel();
+      }
    }
 
    @Inject(method = "isInvisibleTo(Lnet/minecraft/entity/player/PlayerEntity;)Z", at = @At("HEAD"), cancellable = true)

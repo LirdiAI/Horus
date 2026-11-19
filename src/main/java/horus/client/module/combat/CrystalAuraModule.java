@@ -14,7 +14,12 @@ import horus.client.util.EntityUtils;
 import horus.client.util.InventoryUtils;
 import horus.client.module.player.ServerHelperModule;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
+import java.security.SecureRandom;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.Entity;
@@ -35,15 +40,15 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
 @ModuleInfo(
-   name = "AutoExplosion",
+   name = "CrystalAura",
    description = "Автоматически ставит, взрывает кристаллы Края и при необходимости устанавливает обсидиан.",
    category = ModuleCategory.COMBAT
 )
-public final class AutoExplosionModule extends Module {
-   private static AutoExplosionModule autoExplosionModule;
+public final class CrystalAuraModule extends Module {
+   private static CrystalAuraModule crystalAuraModule;
 
    private final ModeSetting modeSetting = this.addSetting(
-      new ModeSetting("Режим", "Скорость и поведение работы взрывов.", "Быстрый", "Быстрый", "Умный", "Задержка")
+      new ModeSetting("Режим", "Скорость и поведение работы взрывов.", "Быстрый", "Быстрый", "Умный", "Задержка", "Легит")
    );
    private final NumberSetting delaySetting = this.addSetting(
       new NumberSetting("Задержка", "Задержка между действиями (мс).")
@@ -101,21 +106,43 @@ public final class AutoExplosionModule extends Module {
    private final BooleanSetting autoDisableSetting = this.addSetting(
       new BooleanSetting("Выключать без ресурсов", "Автоматически отключать модуль, если закончились кристаллы.", false)
    );
+   private final NumberSetting minDamageSetting = this.addSetting(
+      new NumberSetting("Мин. урон", "Минимальный расчётный урон цели для детонации (Легит).")
+         .withRange(2.0F, 20.0F)
+         .withStep(1.0F)
+         .withSuffix(" HP")
+         .setValue(8.0F)
+   );
+   private final NumberSetting jitterSetting = this.addSetting(
+      new NumberSetting("Разброс задержки", "Случайная прибавка к задержке — неровный живой ритм (Легит).")
+         .withRange(0.0F, 200.0F)
+         .withStep(10.0F)
+         .withSuffix(" мс")
+         .setValue(120.0F)
+   );
+   private final BooleanSetting waitConfirmSetting = this.addSetting(
+      new BooleanSetting("Ждать подтверждения", "Не бить кристалл повторно, пока сервер не подтвердит взрыв (Легит).", true)
+   );
 
    private long lastActionAt;
+   private UUID pendingCrystalId;
+   private final SecureRandom random = new SecureRandom();
    private final EventListener<PlayerTickEvent> tickListener = event -> this.tickAutoExplosion();
 
-   private AutoExplosionModule() {
-      this.delaySetting.withVisibility(() -> this.modeSetting.isSelected("Задержка"));
+   private CrystalAuraModule() {
+      this.delaySetting.withVisibility(() -> this.modeSetting.isSelected("Задержка") || this.modeSetting.isSelected("Легит"));
       this.safeDistanceSetting.withVisibility(() -> this.avoidSelfSetting.isChecked());
       this.silentRotationsSetting.withVisibility(() -> this.rotationsSetting.isChecked());
+      this.minDamageSetting.withVisibility(() -> this.modeSetting.isSelected("Легит"));
+      this.jitterSetting.withVisibility(() -> this.modeSetting.isSelected("Легит"));
+      this.waitConfirmSetting.withVisibility(() -> this.modeSetting.isSelected("Легит"));
    }
 
-   public static AutoExplosionModule getInstance() {
-      if (autoExplosionModule == null) {
-         autoExplosionModule = new AutoExplosionModule();
+   public static CrystalAuraModule getInstance() {
+      if (crystalAuraModule == null) {
+         crystalAuraModule = new CrystalAuraModule();
       }
-      return autoExplosionModule;
+      return crystalAuraModule;
    }
 
    @Override
@@ -137,9 +164,16 @@ public final class AutoExplosionModule extends Module {
          return;
       }
 
-      long delay = this.modeSetting.isSelected("Задержка")
-         ? Math.round(this.delaySetting.getValue())
-         : (this.modeSetting.isSelected("Умный") ? 50L : 0L);
+      boolean leg = this.modeSetting.isSelected("Легит");
+
+      long delay;
+      if (leg) {
+         delay = Math.round(this.delaySetting.getValue()) + this.random.nextInt((int)this.jitterSetting.getValue() + 1);
+      } else if (this.modeSetting.isSelected("Задержка")) {
+         delay = Math.round(this.delaySetting.getValue());
+      } else {
+         delay = this.modeSetting.isSelected("Умный") ? 50L : 0L;
+      }
 
       if (System.currentTimeMillis() - this.lastActionAt < delay) {
          return;
@@ -150,14 +184,46 @@ public final class AutoExplosionModule extends Module {
          return;
       }
 
+      // Легит: не бить кристалл повторно, пока сервер не подтвердит взрыв (жанровая защита от дабл-хита)
+      if (leg && this.pendingCrystalId != null) {
+         boolean stillThere = false;
+
+         for (Entity entity : mc.world.getEntities()) {
+            if (entity instanceof EndCrystalEntity crystal
+               && crystal.isAlive()
+               && crystal.getUuid().equals(this.pendingCrystalId)) {
+               stillThere = true;
+               break;
+            }
+         }
+
+         if (stillThere) {
+            return;
+         }
+
+         this.pendingCrystalId = null;
+      }
+
       // Step 1: Check if an End Crystal already exists near target ready to detonate
       EndCrystalEntity crystal = this.findCrystalNear(target);
       if (crystal != null) {
+         if (leg && this.estimateDamage(crystal.getEntityPos(), target) < this.minDamageSetting.getValue()) {
+            return;
+         }
+
          if (this.canDetonate(crystal)) {
             this.applyRotation(crystal.getEntityPos());
             mc.interactionManager.attackEntity(mc.player, crystal);
             mc.player.swingHand(Hand.MAIN_HAND);
             this.lastActionAt = System.currentTimeMillis();
+
+            if (leg) {
+               if (this.waitConfirmSetting.isChecked()) {
+                  this.pendingCrystalId = crystal.getUuid();
+               }
+
+               return;
+            }
 
             // In Fast mode, attempt to place next crystal immediately in the same tick
             if (!this.modeSetting.isSelected("Быстрый")) {
@@ -169,7 +235,7 @@ public final class AutoExplosionModule extends Module {
       }
 
       // Step 2: Place crystal on best available obsidian/bedrock near target
-      boolean placed = this.placeCrystalNear(target);
+      boolean placed = this.placeCrystalNear(target, leg);
       if (!placed && this.autoObsidianSetting.isChecked()) {
          // Step 3: If no valid base found and AutoObsidian enabled, place obsidian
          this.placeObsidianNear(target);
@@ -287,7 +353,7 @@ public final class AutoExplosionModule extends Module {
       return true;
    }
 
-   private boolean placeCrystalNear(PlayerEntity target) {
+   private boolean placeCrystalNear(PlayerEntity target, boolean pickRandomTop) {
       boolean hasOffhand = mc.player.getOffHandStack().isOf(Items.END_CRYSTAL);
       int crystalSlot = hasOffhand ? -1 : InventoryUtils.findInventorySlot(Items.END_CRYSTAL);
 
@@ -299,7 +365,7 @@ public final class AutoExplosionModule extends Module {
          return false;
       }
 
-      PlacementCandidate best = this.findBestPlacement(target);
+      PlacementCandidate best = this.findBestPlacement(target, pickRandomTop);
       if (best == null) {
          return false;
       }
@@ -334,14 +400,14 @@ public final class AutoExplosionModule extends Module {
       }
    }
 
-   private PlacementCandidate findBestPlacement(PlayerEntity target) {
+   private PlacementCandidate findBestPlacement(PlayerEntity target, boolean pickRandomTop) {
       Vec3d eyePos = mc.player.getEyePos();
       double maxReachSq = this.placeRangeSetting.getValue() * this.placeRangeSetting.getValue();
       double safeDistSq = this.safeDistanceSetting.getValue() * this.safeDistanceSetting.getValue();
       BlockPos targetPos = target.getBlockPos();
 
-      BlockPos bestBase = null;
-      double bestTargetDist = Double.MAX_VALUE;
+      List<BlockPos> candidates = new ArrayList<>();
+      List<Double> candidateDists = new ArrayList<>();
 
       for (int dx = -3; dx <= 3; dx++) {
          for (int dy = -2; dy <= 2; dy++) {
@@ -376,17 +442,24 @@ public final class AutoExplosionModule extends Module {
                }
 
                double targetDistSq = target.squaredDistanceTo(crystalPos);
-               if (targetDistSq < bestTargetDist) {
-                  bestTargetDist = targetDistSq;
-                  bestBase = base;
-               }
+               candidates.add(base);
+               candidateDists.add(targetDistSq);
             }
          }
       }
 
-      if (bestBase == null) {
+      if (candidates.isEmpty()) {
          return null;
       }
+
+      List<Integer> order = new ArrayList<>();
+      for (int i = 0; i < candidates.size(); i++) {
+         order.add(i);
+      }
+
+      order.sort(Comparator.comparingDouble(candidateDists::get));
+      int pickFrom = Math.min(pickRandomTop ? 3 : 1, order.size());
+      BlockPos bestBase = candidates.get(order.get(this.random.nextInt(pickFrom)));
 
       Vec3d hitVec = Vec3d.ofCenter(bestBase).add(0.0, 0.5, 0.0);
       BlockHitResult hitResult = new BlockHitResult(hitVec, Direction.UP, bestBase, false);
@@ -496,6 +569,22 @@ public final class AutoExplosionModule extends Module {
       return mc.world.getOtherEntities(null, placementBox, Entity::isAlive).isEmpty();
    }
 
+   private double estimateDamage(Vec3d crystalPos, LivingEntity target) {
+      Vec3d bodyCenter = target.getEntityPos().add(0.0, target.getHeight() * 0.5, 0.0);
+      double dist = bodyCenter.distanceTo(crystalPos);
+      double blast = 7.0;
+      if (dist >= blast) {
+         return 0.0;
+      }
+
+      double damage = 42.0 * (1.0 - dist / blast);
+      if (target.isTouchingWater()) {
+         damage *= 0.2;
+      }
+
+      return damage * 0.6;
+   }
+
    private boolean hasOreNear(BlockPos center) {
       for (BlockPos pos : BlockPos.iterate(center.add(-5, -5, -5), center.add(5, 5, 5))) {
          if (center.getSquaredDistance(pos) > 25.0) {
@@ -516,6 +605,13 @@ public final class AutoExplosionModule extends Module {
       }
 
       float[] rots = EntityUtils.calculateRotationsToVec(targetVec, mc.player.getEyePos());
+
+      // Легит: прицел живого игрока не попадает точно в центр — лёгкий случайный разброс
+      if (this.modeSetting.isSelected("Легит")) {
+         rots[0] += (this.random.nextFloat() - 0.5F) * 1.2F;
+         rots[1] += (this.random.nextFloat() - 0.5F) * 0.8F;
+      }
+
       if (this.silentRotationsSetting.isChecked()) {
          if (mc.player.networkHandler != null) {
             mc.player.networkHandler.sendPacket(

@@ -10,7 +10,7 @@ import horus.client.module.render.AspectRatioModule;
 import horus.client.module.combat.AttackAuraModule;
 import horus.client.module.combat.TargetStrafeModule;
 import horus.client.module.movement.SpeedModule;
-import horus.client.module.combat.AutoExplosionModule;
+import horus.client.module.combat.CrystalAuraModule;
 import horus.client.module.combat.AutoWebModule;
 
 
@@ -62,6 +62,7 @@ import horus.client.module.misc.MultiAccountModule;
 import horus.client.module.misc.DuelHelperModule;
 import horus.client.module.player.ElytraHelperModule;
 import horus.client.module.movement.FlightModule;
+import horus.client.module.movement.NoWebModule;
 import horus.client.module.render.FreeCameraModule;
 import horus.client.module.misc.GlobalsModule;
 import horus.client.module.combat.HitBoxesModule;
@@ -178,7 +179,7 @@ public final class ModuleManager {
          initialized = true;
          registerModule(AttackAuraModule.getInstance());
          registerModule(TargetStrafeModule.getInstance());
-         registerModule(AutoExplosionModule.getInstance());
+         registerModule(CrystalAuraModule.getInstance());
          registerModule(AutoAnchorModule.getInstance());
          registerModule(AutoCartModule.getInstance());
 
@@ -231,6 +232,7 @@ public final class ModuleManager {
          registerModule(AirStuckModule.getInstance());
          registerModule(AutoSprintModule.getInstance());
          registerModule(FlightModule.getInstance());
+         registerModule(NoWebModule.getInstance());
          registerModule(SpeedModule.getInstance());
          registerModule(ScreenWalkModule.getInstance());
          registerModule(VelocityModule.getInstance());
