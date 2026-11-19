@@ -75,6 +75,7 @@ import horus.client.module.render.MotionBlurModule;
 import horus.client.module.misc.NameProtectModule;
 import horus.client.module.combat.NoEntityTraceModule;
 import horus.client.module.player.NoPlayerDelayModule;
+import horus.client.module.player.NoFriendDamageModule;
 import horus.client.module.player.NoPushModule;
 import horus.client.module.render.NoRenderModule;
 import horus.client.module.player.FrameSyncModule;
@@ -267,6 +268,7 @@ public final class ModuleManager {
          registerModule(AutoExpModule.getInstance());
          registerModule(ElytraHelperModule.getInstance());
          registerModule(NoPlayerDelayModule.getInstance());
+         registerModule(NoFriendDamageModule.getInstance());
          registerModule(FreeCameraModule.getInstance());
          registerModule(CameraFeatureModule.getInstance());
          registerModule(ZoomModule.getInstance());
