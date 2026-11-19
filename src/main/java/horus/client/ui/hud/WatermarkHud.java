@@ -2,8 +2,12 @@ package horus.client.ui.hud;
 
 import horus.client.render.FontText;
 import horus.client.util.GuiScale;
+import horus.client.util.MusicWatcher;
+import horus.client.render.ScissorStack;
 import horus.client.render.ThemeColors;
 import horus.client.ui.UiTheme;
+import horus.client.render.CornerRadii;
+import horus.client.render.ShapeDrawing;
 
 import horus.client.util.Animation;
 
@@ -21,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Identifier;
+import org.lwjgl.glfw.GLFW;
 
 public final class WatermarkHud {
    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -44,6 +50,9 @@ public final class WatermarkHud {
    private static float floatVal4;
    private static WatermarkHud.SubContext nested0435;
    private static float floatVal5;
+   private static final Animation islandAnimation = new Animation();
+   private static boolean textTrack;
+   private static boolean rightMouseFlag;
 
    public static boolean matchesCriteria(double local3929_0, double local3929_2, int local3929_4) {
       // Суб-элементы ватермарки зафиксированы: клик передается в HudManager для перемещения всей ватермарки
@@ -119,6 +128,9 @@ public final class WatermarkHud {
          local3930_7.animator4.animateTo(local3930_7.computeFloat5(), 0.05, Easings.EASE_OUT_EXPO);
       }
 
+      MusicWatcher.start();
+      boolean islandMode = MusicWatcher.isPlaying();
+
       float local3930_6 = 0.0F;
 
       for (WatermarkHud.SubContext local3930_8 : list) {
@@ -132,6 +144,9 @@ public final class WatermarkHud {
       }
 
       floatVal4 = Math.max(local3930_6 + 8.0F, 1.0F);
+      if (islandMode) {
+         floatVal4 = computeIslandWidth();
+      }
       float local3930_7 = GuiScale.computeInt() / GuiScale.computeFloat();
       if (local3930_4) {
          local3930_1 = HudManager.computeFloat2() / 2.0F - floatVal4 / 2.0F;
@@ -159,6 +174,12 @@ public final class WatermarkHud {
       floatVal3 = local3930_2;
       HudManager.processData9("watermark", local3930_1, local3930_2, floatVal4, 15.0F);
       floatVal = HudManager.computeFloat4() > 0.0F ? (local3930_2 + 15.0F) / HudManager.computeFloat4() : 0.0F;
+
+      if (islandMode) {
+         renderDynamicIsland(minecraftClient, local3930_1, local3930_2, local3930_7);
+         return;
+      }
+
       float local3930_10 = animator.floatValue();
       if (!(local3930_10 <= 0.001F)) {
          boolean local3930_11 = HudRenderContext.checkState2();
@@ -222,6 +243,97 @@ public final class WatermarkHud {
    private static int computeInt(int local3931_0, float local3931_1) {
       int local3931_2 = UiTheme.computeInt2(local3931_0, -42406, local3931_1);
       return UiTheme.computeInt2(local3931_2, -55256, ThemeColors.computeFloat((local3931_1 - 0.7F) / 0.3F));
+   }
+
+   // ============ DynamicIsland ============
+
+   private static float computeIslandWidth() {
+      float coverArea = 18.0F + 6.0F;
+      float titleW = FontText.computeFloat(FontFace.SEMI, MusicWatcher.getTitle(), 6.0F);
+      float artistW = FontText.computeFloat(FontFace.SEMI, MusicWatcher.getArtist(), 5.0F);
+      float width = 8.0F + coverArea + Math.max(titleW, artistW) + 10.0F;
+      return Math.max(90.0F, Math.min(width, 180.0F));
+   }
+
+   private static void renderDynamicIsland(MinecraftClient minecraftClient, float x, float y, float scale) {
+      islandAnimation.update();
+      islandAnimation.animateTo(1.0, 0.3, Easings.EASE_OUT_EXPO);
+      float alpha = islandAnimation.floatValue();
+
+      float width = floatVal4;
+      float height = 26.0F;
+      float coverSize = 18.0F;
+      float coverX = x + 5.0F;
+      float coverY = y + height / 2.0F - coverSize / 2.0F;
+      float cy = y + height / 2.0F;
+
+      // Тёмная пилюля
+      ShapeDrawing.processData5(x, y, width, height, 0.0F, 0xEE121319, alpha, CornerRadii.uniform(height / 2.0F));
+
+      // Обложка (или логотип, пока грузится)
+      Identifier coverId = MusicWatcher.getCover();
+      if (coverId != null) {
+         Render2D.processData89(coverId.toString(), coverX, coverY, coverSize, coverSize, 6.0F, UiTheme.computeInt(-1, alpha));
+      } else {
+         Render2D.processData89("assets/horus/textures/gui/mainmenu/icons/logo.png", coverX, coverY, coverSize, coverSize, 6.0F, UiTheme.computeInt(-1, alpha));
+      }
+
+      // ПКМ по острову — переключение плавной текстовой дорожки
+      float mouseX = (float)(minecraftClient.mouse.getScaledX(minecraftClient.getWindow()) * scale);
+      float mouseY = (float)(minecraftClient.mouse.getScaledY(minecraftClient.getWindow()) * scale);
+      boolean rightMouse = GLFW.glfwGetMouseButton(minecraftClient.getWindow().getHandle(), 1) == 1;
+      if (rightMouse && !rightMouseFlag && mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
+         textTrack = !textTrack;
+      }
+
+      rightMouseFlag = rightMouse;
+
+      float textX = x + 5.0F + coverSize + 6.0F;
+      float areaWidth = width - (textX - x) - 8.0F;
+
+      if (textTrack) {
+         // Плавная бегущая дорожка
+         String full = MusicWatcher.getTitle() + "  —  " + MusicWatcher.getArtist();
+         float textWidth = FontText.computeFloat(FontFace.SEMI, full, 6.0F);
+         int white = UiTheme.computeInt(-1, alpha);
+         ScissorStack.processData2(textX, y + 2.0F, areaWidth, height - 4.0F);
+
+         if (textWidth <= areaWidth) {
+            FontText.processData3(FontFace.SEMI, full, textX, cy - 3.5F, 6.0F, white);
+         } else {
+            float total = textWidth + 16.0F;
+            float offset = (float)((System.currentTimeMillis() / 30L) % (long)Math.max(1, Math.round(total)));
+            FontText.processData3(FontFace.SEMI, full, textX - offset, cy - 3.5F, 6.0F, white);
+            FontText.processData3(FontFace.SEMI, full, textX - offset + total, cy - 3.5F, 6.0F, white);
+         }
+
+         ScissorStack.updateState2();
+      } else {
+         // Статично: название (белым) и исполнители (серым)
+         String trackName = trimToWidth(MusicWatcher.getTitle(), areaWidth, 6.0F);
+         String performers = trimToWidth(MusicWatcher.getArtist(), areaWidth, 5.0F);
+         FontText.processData3(FontFace.SEMI, trackName, textX, cy - 8.5F, 6.0F, UiTheme.computeInt(-1, alpha));
+         FontText.processData3(FontFace.SEMI, performers, textX, cy + 3.0F, 5.0F, UiTheme.computeInt(0xFF9AA0A6, alpha));
+      }
+   }
+
+   private static String trimToWidth(String text, float maxWidth, float fontSize) {
+      if (text == null || text.isEmpty()) {
+         return "";
+      }
+
+      if (FontText.computeFloat(FontFace.SEMI, text, fontSize) <= maxWidth) {
+         return text;
+      }
+
+      for (int index = text.length(); index > 3; index--) {
+         String candidate = text.substring(0, index) + "…";
+         if (FontText.computeFloat(FontFace.SEMI, candidate, fontSize) <= maxWidth) {
+            return candidate;
+         }
+      }
+
+      return text.substring(0, 3) + "…";
    }
 
    public static float computeFloat2() {
