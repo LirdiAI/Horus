@@ -81,20 +81,24 @@ public final class HighJumpModule extends Module {
             }
 
             this.flag3 = false;
+            this.tickCounter = 0;
          } else {
             this.flag2 = false;
-            if (!this.flag3) {
-               this.flag3 = true;
-               ClientChat.processData8("&7Левитации нет — держись рядом с шалкером, он выстрелит и полёт продолжится.");
+            if (this.tickCounter % 100 == 0) {
+               ClientChat.processData8(
+                  "&7Левитации нет: шалкер должен видеть тебя и стрелять. Если шалкер стоит рядом — посмотри в его сторону и не закрывайся блоком."
+               );
             }
+
+            this.tickCounter++;
          }
 
          return;
       }
 
-      // Не в лодке — ищем лодку с шалкером
+      // Не в лодке — ищем готовую связку: шалкер В лодке ИЛИ шалкер рядом с лодкой
       if (this.tickCounter % 10 == 0) {
-         this.boat = this.findShulkerBoat();
+         this.boat = this.findFlightBoat();
       }
 
       if (this.boat != null && this.boat.isRemoved()) {
@@ -104,7 +108,9 @@ public final class HighJumpModule extends Module {
       if (this.boat == null) {
          if (!this.flag) {
             this.flag = true;
-            ClientChat.processData8("&7HighJump: лодки с шалкером рядом нет. Нужна лодка, в которой сидит живой шалкер.");
+            ClientChat.processData8(
+               "&7HighJump: готовой связки нет. Возьми лодку, затолкай в неё живого шалкера (или поставь лодку вплотную к шалкеру) — и я сам посажу тебя."
+            );
          }
 
          return;
@@ -115,30 +121,62 @@ public final class HighJumpModule extends Module {
 
       if (this.autoBoardSetting.isChecked() && distance <= 4.5 && this.tickCounter % 5 == 0) {
          mc.interactionManager.interactEntity(mc.player, this.boat, Hand.MAIN_HAND);
-         ClientChat.processData8("&aСажусь в лодку с шалкером (&7" + String.format("%.1f", distance) + "м&a).");
+         ClientChat.processData8("&aСажусь в лодку (&7" + String.format("%.1f", distance) + "м&a) — жди выстрела шалкера с левитацией.");
       }
    }
 
-   private AbstractBoatEntity findShulkerBoat() {
+   private AbstractBoatEntity findFlightBoat() {
       double range = this.searchRangeSetting.getValue();
-      Predicate<Entity> matcher = entity -> entity instanceof AbstractBoatEntity boatEntity
-         && boatEntity.isAlive()
-         && boatEntity.hasPassenger(passenger -> passenger instanceof ShulkerEntity);
-
       AbstractBoatEntity best = null;
       double bestDistance = Double.MAX_VALUE;
+      ShulkerEntity nearestShulker = null;
+      double shulkerDistance = Double.MAX_VALUE;
 
       for (Entity entity : mc.world.getEntities()) {
-         if (matcher.test(entity)) {
-            double distanceSq = mc.player.squaredDistanceTo(entity);
-            if (distanceSq <= range * range && distanceSq < bestDistance) {
-               best = (AbstractBoatEntity) entity;
-               bestDistance = distanceSq;
-            }
+         double distanceSq = mc.player.squaredDistanceTo(entity);
+         if (distanceSq > range * range) {
+            continue;
+         }
+
+         if (entity instanceof AbstractBoatEntity boatEntity
+            && boatEntity.isAlive()
+            && boatEntity.hasPassenger(passenger -> passenger instanceof ShulkerEntity)
+            && distanceSq < bestDistance) {
+            best = boatEntity;
+            bestDistance = distanceSq;
+         } else if (entity instanceof ShulkerEntity shulkerEntity
+            && shulkerEntity.isAlive()
+            && distanceSq < shulkerDistance) {
+            nearestShulker = shulkerEntity;
+            shulkerDistance = distanceSq;
          }
       }
 
-      return best;
+      if (best != null) {
+         return best;
+      }
+
+      // Готовой лодки с шалкером нет — ищем лодку вплотную к живому шалкеру (он прострелит тебя в ней)
+      if (nearestShulker != null) {
+         AbstractBoatEntity nearby = null;
+         double nearbyDistance = Double.MAX_VALUE;
+
+         for (Entity entity : mc.world.getEntities()) {
+            if (entity instanceof AbstractBoatEntity boatEntity
+               && boatEntity.isAlive()
+               && boatEntity.squaredDistanceTo(nearestShulker) <= 16.0) {
+               double distanceSq = mc.player.squaredDistanceTo(boatEntity);
+               if (distanceSq < nearbyDistance) {
+                  nearby = boatEntity;
+                  nearbyDistance = distanceSq;
+               }
+            }
+         }
+
+         return nearby;
+      }
+
+      return null;
    }
 
    public static HighJumpModule getInstance() {
