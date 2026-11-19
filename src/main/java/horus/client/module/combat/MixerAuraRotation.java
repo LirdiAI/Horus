@@ -22,6 +22,12 @@ import net.minecraft.util.math.Vec3d;
 public final class MixerAuraRotation implements MinecraftAccess, AuraRotationStrategy {
    private final AttackAuraModule aura;
    private float mixProgress = 0.0F;
+   private float driftYaw;
+   private float driftTargetYaw;
+   private float driftPitch;
+   private float driftTargetPitch;
+   private int driftTimer;
+   private int hesitationTicks;
 
    public MixerAuraRotation(AttackAuraModule aura) {
       this.aura = aura;
@@ -75,6 +81,33 @@ public final class MixerAuraRotation implements MinecraftAccess, AuraRotationStr
       float playerYaw = mc.player.getYaw();
       float playerPitch = mc.player.getPitch();
 
+      // Живой игрок: рука дрейфует, иногда на мгновение «задумывается» — ротация никогда не идеальна
+      java.util.concurrent.ThreadLocalRandom random = java.util.concurrent.ThreadLocalRandom.current();
+
+      if (this.hesitationTicks > 0) {
+         this.hesitationTicks--;
+         if (random.nextInt(100) < 55) {
+            return;
+         }
+
+         this.hesitationTicks = 0;
+      } else if (random.nextInt(1000) < 6) {
+         this.hesitationTicks = 1 + random.nextInt(3);
+      }
+
+      if (--this.driftTimer <= 0) {
+         this.driftTargetYaw = (random.nextFloat() - 0.5F) * 3.2F;
+         this.driftTargetPitch = (random.nextFloat() - 0.5F) * 2.4F;
+         this.driftTimer = 15 + random.nextInt(25);
+      }
+
+      this.driftYaw += (this.driftTargetYaw - this.driftYaw) * 0.12F;
+      this.driftPitch += (this.driftTargetPitch - this.driftPitch) * 0.12F;
+
+      // Наведение с человеческим дрейфом: сам прицел слегка «плывёт» вокруг точки
+      targetYaw = MathHelper.wrapDegrees(targetYaw + this.driftYaw);
+      targetPitch = MathHelper.clamp(targetPitch + this.driftPitch, -89.0F, 89.0F);
+
       float deltaYaw = MathHelper.wrapDegrees(targetYaw - playerYaw);
       float deltaPitch = targetPitch - playerPitch;
       float angularDist = (float)Math.hypot(deltaYaw, deltaPitch);
@@ -101,6 +134,9 @@ public final class MixerAuraRotation implements MinecraftAccess, AuraRotationStr
 
       float effectiveYawSpeed = Math.max(2.0F, Math.min(Math.abs(deltaYaw), baseSpeed * speedFactor));
       float effectivePitchSpeed = Math.max(1.5F, Math.min(Math.abs(deltaPitch), baseSpeed * 0.75F * speedFactor));
+
+      // Скорость руки тоже неровная: живой игрок не двигает мышь идеально равномерно
+      speedFactor *= 0.94F + 0.12F * (MathHelper.sin(this.mixProgress * 0.53F) * 0.5F + 0.5F);
 
       // 4. Quantize speeds to Minecraft sensitivity GCD (MLSAC bypass)
       float quantizedYawSpeed = Math.max(MouseSensitivity.getSensitivityDelta(), MouseSensitivity.quantizeSensitivity(effectiveYawSpeed));

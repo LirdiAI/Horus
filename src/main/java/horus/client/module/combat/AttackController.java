@@ -251,9 +251,11 @@ public final class AttackController implements MinecraftAccess {
       }
 
       if (AttackAuraModule.getInstance().isEnabled() && AttackAuraModule.getInstance().isRandomCrits()) {
-         if (java.util.concurrent.ThreadLocalRandom.current().nextInt(100) < 35) {
-            return true;
-         }
+         // Рандомизация крита: шанс 13%..84% со средним ~73% (смещено к верху).
+         // Не прокатило — удар без крита (слабый) или пропуск атаки.
+         double roll = java.util.concurrent.ThreadLocalRandom.current().nextDouble();
+         double chance = 13.0 + 71.0 * Math.pow(roll, 0.2);
+         return java.util.concurrent.ThreadLocalRandom.current().nextDouble(100.0) < chance;
       }
 
       boolean local1605_1 = AttackAuraModule.getInstance().isEnabled() && AttackAuraModule.getInstance().isSmartCrits()
@@ -286,13 +288,21 @@ public final class AttackController implements MinecraftAccess {
       } else if (AttackAuraModule.getInstance().shouldCrit() || TriggerBotModule.getInstance().canMaceSmash()) {
          return !mc.player.getItemCooldownManager().isCoolingDown(mc.player.getMainHandStack());
       } else if (mc.player.fallDistance > 1.5) {
-         return !mc.player.getItemCooldownManager().isCoolingDown(mc.player.getMainHandStack()) && ticksSinceLastAttack > 3L + local1608_0 / 50L;
+         return !mc.player.getItemCooldownManager().isCoolingDown(mc.player.getMainHandStack())
+            && ticksSinceLastAttack > slowedCritTicks(3L + local1608_0 / 50L);
       } else {
          return mc.player.getMainHandStack().isOf(Items.MACE)
             ? !mc.player.getItemCooldownManager().isCoolingDown(mc.player.getMainHandStack())
                && mc.player.getAttackCooldownProgress(0.5F + (float)Math.max(0L, -local1608_0) / 50.0F) >= 0.9F
-            : mc.player.getAttackCooldownProgress(0.5F + (float)Math.max(0L, -local1608_0) / 50.0F) >= 0.9F && ticksSinceLastAttack >= 10L + local1608_0 / 50L;
+            : mc.player.getAttackCooldownProgress(0.5F + (float)Math.max(0L, -local1608_0) / 50.0F) >= 0.9F
+               && ticksSinceLastAttack >= slowedCritTicks(10L + local1608_0 / 50L);
       }
+   }
+
+   /** Пока ротация доворачивает прицел к цели — удары на 10% медленнее. */
+   private static long slowedCritTicks(long baseTicks) {
+      AttackAuraModule aura = AttackAuraModule.getInstance();
+      return aura.isEnabled() && aura.isRotationActive() ? Math.round(baseTicks * 1.1F) : baseTicks;
    }
 
    public static boolean shouldResetSprint(LivingEntity livingEntity, float[] floatArray, String local1609_2) {

@@ -779,6 +779,12 @@ int axeSlot = this.shieldBreak.isChecked()
       return this.randomCrits != null && this.randomCrits.isChecked();
    }
 
+   /** Активна ли ротация прямо сейчас (прицел ещё доворачивается к цели). */
+   public boolean isRotationActive() {
+      AuraRotationStrategy strategy = this.getRotationStrategy();
+      return strategy != null && this.target != null && strategy.isRotating(this.target, (float)this.getEffectiveRange());
+   }
+
    private AttackAuraModule() {
       this.rotationType = this.addSetting(
          new ModeSetting("Тип наведения", "Стиль движения прицела к цели.", "FunTime", "FunTime", "SpookyTime", "ReallyWorld", "Mixer", "Sloth", "Legit")
