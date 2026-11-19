@@ -25,6 +25,7 @@ public final class FrameSyncModule extends Module {
 
    public final ModeSetting modeSetting;
    public final BooleanSetting entityCulling;
+   public final BooleanSetting shadowCull;
    public final BooleanSetting smartLight;
    public final BooleanSetting fastMath;
    public final BooleanSetting gcOptimizer;
@@ -47,6 +48,9 @@ public final class FrameSyncModule extends Module {
       );
       this.entityCulling = this.addSetting(
          new BooleanSetting("Entity Culling", "Отсекать рендеринг сущностей вне поля зрения и глубоко за стенами", true)
+      );
+      this.shadowCull = this.addSetting(
+         new BooleanSetting("Без теней", "Убирает тени под сущностями — один из самых заметных приростов FPS без потери информации.", true)
       );
       this.smartLight = this.addSetting(
          new BooleanSetting("Smart Light", "Оптимизация расчета освещения и световых карт", true)
@@ -87,6 +91,13 @@ public final class FrameSyncModule extends Module {
 
       // Enabled by default so the user immediately gets 200+ FPS boost!
       this.setEnabledWithoutCallbacks(true);
+   }
+
+   /**
+    * Returns true if entity shadows should be culled from rendering.
+    */
+   public boolean shouldCullShadows() {
+      return this.isEnabled() && this.shadowCull != null && this.shadowCull.isChecked();
    }
 
    /**

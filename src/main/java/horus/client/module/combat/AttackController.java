@@ -7,6 +7,7 @@ import horus.client.module.combat.AimAssistModule;
 import horus.client.module.movement.AirStuckModule;
 import horus.client.module.combat.AttackAuraModule;
 import horus.client.module.combat.MaceHelperModule;
+import horus.client.module.player.NoPlayerDelayModule;
 import horus.client.util.MathUtils;
 import horus.client.MinecraftAccess;
 import horus.client.util.Stopwatch;
@@ -225,6 +226,12 @@ public final class AttackController implements MinecraftAccess {
    }
 
    public static boolean canPerformCriticalHit(boolean local1605_0) {
+      // NoPlayerDelay «Атаковать»: атакуем без крита, пока спамим прыжками в тесноте
+      if (NoPlayerDelayModule.getInstance().isEnabled()
+         && NoPlayerDelayModule.getInstance().multiSelectSetting.matchesOption("Атаковать")) {
+         return true;
+      }
+
       if (isMaceOrCritReady()
          && mc.player != null
          && !mc.player.isOnGround()

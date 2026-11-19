@@ -23,6 +23,11 @@ public final class NoPlayerDelayModule extends Module {
             ((LivingEntityMixin)mc.player).setNoJumpDelay(0);
          }
 
+         if (this.multiSelectSetting.matchesOption("Атаковать")) {
+            // Сбрасываем кулдаун атаки — AttackAura бьёт даже при спаме прыжками в 2 блоках
+            ((MinecraftClientMixin3)mc).setMissTime(0);
+         }
+
          if (mc.player.getMainHandStack().getItem() instanceof BlockItem && this.multiSelectSetting.matchesOption("Ставка блоков")
             || mc.player.getMainHandStack().getItem() instanceof ExperienceBottleItem && this.multiSelectSetting.matchesOption("Пузырьки опыта")
             || mc.player.getMainHandStack().getItem() instanceof GlassBottleItem && this.multiSelectSetting.matchesOption("Бутыльки без воды")) {
@@ -33,7 +38,7 @@ public final class NoPlayerDelayModule extends Module {
 
    private NoPlayerDelayModule() {
       this.multiSelectSetting = this.addSetting(
-         new MultiSelectSetting("Задержки", "Где отключать задержку.", new String[]{"Ставка блоков", "Прыжок", "Пузырьки опыта", "Бутыльки без воды"})
+         new MultiSelectSetting("Задержки", "Где отключать задержку.", new String[]{"Ставка блоков", "Прыжок", "Атаковать", "Пузырьки опыта", "Бутыльки без воды"})
       );
    }
 

@@ -30,6 +30,7 @@
     "EntityMixin",
     "EntityS2CPacketAccessor",
     "EntityRendererMixin",
+    "EntityRendererMixin2",
     "FogRendererMixin",
     "InactivityFpsLimiterMixin",
     "GameRendererMixin",

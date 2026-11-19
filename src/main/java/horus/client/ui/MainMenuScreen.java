@@ -36,6 +36,7 @@ import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -485,7 +486,7 @@ public class MainMenuScreen extends Screen {
               mx,
               my,
               interactive,
-              () -> this.modals.open(MainMenuModals.Type.MULTIPLAYER)
+              () -> MinecraftClient.getInstance().setScreen(new MultiplayerScreen(this))
       );
 
       // 3. Swap Accounts (Accent White-Purple button with smooth slide)
@@ -625,7 +626,7 @@ public class MainMenuScreen extends Screen {
 
       this.drawPillButton(btnX, y, btnW, btnH, radius, scale, Lang.tr("Одиночная игра", "Singleplayer"), false, mx, my, interactive, () -> this.modals.open(MainMenuModals.Type.SINGLEPLAYER));
       y += btnH + gap;
-      this.drawPillButton(btnX, y, btnW, btnH, radius, scale, Lang.tr("Сетевая игра", "Multiplayer"), false, mx, my, interactive, () -> this.modals.open(MainMenuModals.Type.MULTIPLAYER));
+      this.drawPillButton(btnX, y, btnW, btnH, radius, scale, Lang.tr("Сетевая игра", "Multiplayer"), false, mx, my, interactive, () -> MinecraftClient.getInstance().setScreen(new MultiplayerScreen(this)));
       y += btnH + gap;
       this.drawPillButton(btnX, y, btnW, btnH, radius, scale, accountsLabel, true, mx, my, interactive, this::toggleAlt);
       y += btnH + gap;
@@ -654,7 +655,7 @@ public class MainMenuScreen extends Screen {
       float y0 = centerY - (cardH * 3.0F + gap * 2.0F) / 2.0F;
 
       this.drawCardButton(x0, y0, cardW, cardH, radius, scale, Lang.tr("Одиночная игра", "Singleplayer"), Lang.tr("Локальные миры", "Local worlds"), 0, 0, mx, my, interactive, () -> this.modals.open(MainMenuModals.Type.SINGLEPLAYER));
-      this.drawCardButton(x0 + cardW + gap, y0, cardW, cardH, radius, scale, Lang.tr("Сетевая игра", "Multiplayer"), Lang.tr("Серверы", "Servers"), 0, 0, mx, my, interactive, () -> this.modals.open(MainMenuModals.Type.MULTIPLAYER));
+      this.drawCardButton(x0 + cardW + gap, y0, cardW, cardH, radius, scale, Lang.tr("Сетевая игра", "Multiplayer"), Lang.tr("Серверы", "Servers"), 0, 0, mx, my, interactive, () -> MinecraftClient.getInstance().setScreen(new MultiplayerScreen(this)));
       y0 += cardH + gap;
 
       this.drawCardButton(x0, y0, cardW, cardH, radius, scale, Lang.tr("Аккаунты", "Accounts"), this.welcomeName(), 0xFF8B5CF6, 0xFFB794FF, mx, my, interactive, this::toggleAlt);
