@@ -107,6 +107,7 @@ public final class AttackAuraModule extends Module {
    private final ReallyWorldAuraRotation reallyWorldAuraRotation = new ReallyWorldAuraRotation(this);
    private final MixerAuraRotation mixerAuraRotation = new MixerAuraRotation(this);
    private final SlothAuraRotation slothAuraRotation = new SlothAuraRotation(this);
+   private final NeuroAuraRotation neuroAuraRotation = new NeuroAuraRotation(this);
    private final PredictiveAuraRotation predictiveAuraRotation = new PredictiveAuraRotation();
    private final SmoothAuraRotation smoothAuraRotation = new SmoothAuraRotation();
    private static final Pattern BOSS_TIMER_PATTERN = Pattern.compile("(\\d+)\\s*сек");
@@ -767,6 +768,7 @@ int axeSlot = this.shieldBreak.isChecked()
          case "ReallyWorld" -> this.reallyWorldAuraRotation;
          case "Mixer" -> this.mixerAuraRotation;
          case "Sloth" -> this.slothAuraRotation;
+         case "Нейро" -> this.neuroAuraRotation;
          default -> null;
       };
    }
@@ -787,12 +789,12 @@ int axeSlot = this.shieldBreak.isChecked()
 
    private AttackAuraModule() {
       this.rotationType = this.addSetting(
-         new ModeSetting("Тип наведения", "Стиль движения прицела к цели.", "FunTime", "FunTime", "SpookyTime", "ReallyWorld", "Mixer", "Sloth", "Legit")
+         new ModeSetting("Тип наведения", "Стиль движения прицела к цели.", "FunTime", "FunTime", "SpookyTime", "ReallyWorld", "Mixer", "Sloth", "Нейро", "Legit")
       );
       this.rotationSpeed = this.addSetting(
          new LegacyNumberSetting("Скорость ротации", "Скорость поворота для типов ReallyWorld и Mixer (MLSAC).", 32.0, 5.0, 50.0, 1.0)
       );
-      this.rotationSpeed.withVisibility(() -> this.rotationType.isSelected("ReallyWorld") || this.rotationType.isSelected("Mixer") || this.rotationType.isSelected("Sloth"));
+      this.rotationSpeed.withVisibility(() -> this.rotationType.isSelected("ReallyWorld") || this.rotationType.isSelected("Mixer") || this.rotationType.isSelected("Sloth") || this.rotationType.isSelected("Нейро"));
       this.attackRange = this.addSetting(new LegacyNumberSetting("Радиус удара", "На какой дистанции наносить удар.", 3.0, 3.0, 6.0, 0.1));
       this.aimRange = this.addSetting(
          new LegacyNumberSetting("Радиус прицеливания", "На сколько блоков дальше радиуса удара вести цель.", 5.0, 0.0, 10.0, 0.1)
@@ -978,6 +980,7 @@ int axeSlot = this.shieldBreak.isChecked()
       this.reallyWorldAuraRotation.reset();
       this.mixerAuraRotation.reset();
       this.slothAuraRotation.reset();
+      this.neuroAuraRotation.reset();
    }
 
    public boolean isMaceFalling() {
