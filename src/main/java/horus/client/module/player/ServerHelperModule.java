@@ -70,7 +70,7 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 
-   @ModuleInfo(name = "ServerHelper", description = "Бинды предметов для SpookyTime, FunTime, ReallyWorld и HolyWorld.", category = ModuleCategory.PLAYER)
+   @ModuleInfo(name = "ServerHelper", description = "Бинды предметов для SpookyTime, FunTime, ReallyWorld, LonyGrief и HolyWorld.", category = ModuleCategory.PLAYER)
    public final class ServerHelperModule extends Module {
       private static ServerHelperModule serverHelperModule;
       public ModeSetting modeSetting;
@@ -463,7 +463,7 @@ import net.minecraft.world.RaycastContext;
 
    private void processData6(String newName, String... stringArray) {
       KeybindSetting currentKeybindSetting = this.addSetting(new KeybindSetting(newName, "Использует предмет по нажатию кнопки."));
-      currentKeybindSetting.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld"));
+      currentKeybindSetting.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld") && !this.modeSetting.isSelected("LonyGrief"));
       this.list.add(new ServerHelperModule.SubContext(newName, currentKeybindSetting, stringArray));
    }
 
@@ -475,13 +475,19 @@ import net.minecraft.world.RaycastContext;
 
    private void processData8(String newName, Item item, String local926_3) {
       KeybindSetting currentKeybindSetting = this.addSetting(new KeybindSetting(newName, "Использует предмет по нажатию кнопки."));
-      currentKeybindSetting.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld"));
+      currentKeybindSetting.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld") && !this.modeSetting.isSelected("LonyGrief"));
       this.list.add(new ServerHelperModule.SubContext(item, currentKeybindSetting));
    }
 
    private void processDataReallyWorld(String newName, Item item, Predicate<ItemStack> matcher) {
       KeybindSetting currentKeybindSetting = this.addSetting(new KeybindSetting(newName, "Использует предмет по нажатию кнопки."));
       currentKeybindSetting.withVisibility(() -> this.modeSetting.isSelected("ReallyWorld"));
+      this.list.add(new ServerHelperModule.SubContext(newName, item, currentKeybindSetting, matcher));
+   }
+
+   private void processDataLonyGrief(String newName, Item item, Predicate<ItemStack> matcher) {
+      KeybindSetting currentKeybindSetting = this.addSetting(new KeybindSetting(newName, "Использует предмет по нажатию кнопки."));
+      currentKeybindSetting.withVisibility(() -> this.modeSetting.isSelected("LonyGrief"));
       this.list.add(new ServerHelperModule.SubContext(newName, item, currentKeybindSetting, matcher));
    }
 
@@ -713,7 +719,7 @@ import net.minecraft.world.RaycastContext;
 
     private ServerHelperModule() {
       this.modeSetting = this.addSetting(
-         new ModeSetting("Сервер", "Для какого сервера предметы.", "SpookyTime", "SpookyTime", "FunTime", "ReallyWorld", "HolyWorld")
+         new ModeSetting("Сервер", "Для какого сервера предметы.", "SpookyTime", "SpookyTime", "FunTime", "ReallyWorld", "LonyGrief", "HolyWorld")
       );
       this.smartScroll = this.addSetting(
          new BooleanSetting("Умный скролл", "Скролл колёсиком пропускает выбранные слоты, выбор цифрами работает как обычно.", false)
@@ -725,11 +731,11 @@ import net.minecraft.world.RaycastContext;
       this.autoPitch = this.addSetting(
          new BooleanSetting("Авто питч", "Кидает зелья по бинду себе под ноги, глядя вниз. Радиацию и Снотворное не трогает.", false)
       );
-      this.autoPitch.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld"));
+      this.autoPitch.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld") && !this.modeSetting.isSelected("LonyGrief"));
       this.showArrows = this.addSetting(new BooleanSetting("Показывать стрелы", "У лука и арбалета в хотбаре рисует общее число стрел в инвентаре.", false));
       this.eventWaypoint = this.addSetting(new BooleanSetting("Точка на ивент", "Ставит метку по координатам ивента из чата.", false));
       this.autoPlast = this.addSetting(new BooleanSetting("Авто Пласт", "Если на тебя летит зелье с плохими эффектами, автоматически ставит пласт (сушёные водоросли) в точку попадания."));
-      this.autoPlast.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld"));
+      this.autoPlast.withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld") && !this.modeSetting.isSelected("LonyGrief"));
       this.addSetting(new SectionSetting("Предметы"));
       this.processData8("Снежок", Items.SNOWBALL, "snowball");
       this.processData8("Божья аура", Items.PHANTOM_MEMBRANE, "phantom membrane");
@@ -811,6 +817,60 @@ import net.minecraft.world.RaycastContext;
          return false;
       });
 
+      // Предметы активации LonyGrief
+      this.processDataLonyGrief("Обычная Ливалка", Items.NETHER_STAR, itemStack -> {
+         String name = Formatting.strip(itemStack.getName().getString()).toLowerCase().replace('ё', 'е');
+         return name.contains("ливалка") && !name.contains("платформ");
+      });
+      this.processDataLonyGrief("Ливалка с платформой", Items.NETHER_STAR, itemStack -> {
+         String name = Formatting.strip(itemStack.getName().getString()).toLowerCase().replace('ё', 'е');
+         if (name.contains("ливалка") && name.contains("платформ")) {
+            return true;
+         }
+         LoreComponent lore = itemStack.get(DataComponentTypes.LORE);
+         if (lore != null) {
+            for (Text line : lore.lines()) {
+               String lineStr = Formatting.strip(line.getString()).toLowerCase().replace('ё', 'е');
+               if (lineStr.contains("ливалка") && lineStr.contains("платформ")) {
+                  return true;
+               }
+            }
+         }
+         return false;
+      });
+      this.processDataLonyGrief("Уникальное Пёрышко", Items.NETHER_STAR, itemStack -> {
+         String name = Formatting.strip(itemStack.getName().getString()).toLowerCase().replace('ё', 'е');
+         if (name.contains("перы") || name.contains("перышк")) {
+            return true;
+         }
+         LoreComponent lore = itemStack.get(DataComponentTypes.LORE);
+         if (lore != null) {
+            for (Text line : lore.lines()) {
+               String lineStr = Formatting.strip(line.getString()).toLowerCase().replace('ё', 'е');
+               if (lineStr.contains("перы") || lineStr.contains("перышк")) {
+                  return true;
+               }
+            }
+         }
+         return false;
+      });
+      this.processDataLonyGrief("Уникальная Гранка", Items.NETHER_STAR, itemStack -> {
+         String name = Formatting.strip(itemStack.getName().getString()).toLowerCase().replace('ё', 'е');
+         if (name.contains("гранка") || name.contains("гранк")) {
+            return true;
+         }
+         LoreComponent lore = itemStack.get(DataComponentTypes.LORE);
+         if (lore != null) {
+            for (Text line : lore.lines()) {
+               String lineStr = Formatting.strip(line.getString()).toLowerCase().replace('ё', 'е');
+               if (lineStr.contains("гранка") || lineStr.contains("гранк")) {
+                  return true;
+               }
+            }
+         }
+         return false;
+      });
+
       // EventSearch for ReallyWorld
       this.addSetting(new SectionSetting("EventSearch (ReallyWorld)")).withVisibility(() -> this.modeSetting.isSelected("ReallyWorld"));
       this.eventSearch = this.addSetting(new BooleanSetting("EventSearch", "Поиск ивентовых голов по совпадению скина/модели.", false));
@@ -834,7 +894,7 @@ import net.minecraft.world.RaycastContext;
       this.clearEventTarget = this.addSetting(new BooleanSetting("Сбросить цель", "Сбрасывает текущую цель поиска.", false));
       this.clearEventTarget.withVisibility(() -> this.modeSetting.isSelected("ReallyWorld") && this.eventSearch.isChecked());
 
-      this.addSetting(new SectionSetting("Зелья")).withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld"));
+      this.addSetting(new SectionSetting("Зелья")).withVisibility(() -> !this.modeSetting.isSelected("HolyWorld") && !this.modeSetting.isSelected("ReallyWorld") && !this.modeSetting.isSelected("LonyGrief"));
       this.processData6("Зелье Палладина", "minecraft:resistance", "minecraft:fire_resistance", "minecraft:health_boost", "minecraft:invisibility");
       this.processData6("Зелье Гнева", "minecraft:strength", "minecraft:slowness");
       this.processData6("Хлопушка", "minecraft:slowness", "minecraft:speed", "minecraft:blindness", "minecraft:glowing");
